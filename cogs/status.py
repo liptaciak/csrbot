@@ -12,7 +12,7 @@ class Status(commands.Cogs):
         self.bot = bot
 
     @commands.hybrid_command(name="status", description="Info about server status.")
-    @commands.has_permissions(administrator=true)
+    @commands.has_permissions(administrator=True)
     async def status(self, ctx):
         if ctx.guild and ctx.guild.id == int(os.getenv("GUILD_ID")) and ctx.author.guild_permissions.administrator:
             ports = [26125, 26250, 26375, 26500, 26625, 26750, 26875, 27000, 27015, 27020]
