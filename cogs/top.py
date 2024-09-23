@@ -1,4 +1,5 @@
 import os
+import logging
 
 import discord
 from discord.ext import commands
@@ -22,5 +23,6 @@ class Top(commands.Cog):
 
                     await ctx.send(embed=top_embed)
             except Exception as err:
-                print(f"Database error: {err}")
+                logging.error(f"Error occured: {err}")
+
                 await ctx.send("An error occured while retrieving users from database.")

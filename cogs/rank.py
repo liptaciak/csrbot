@@ -1,4 +1,5 @@
 import os
+import logging
 
 import discord
 from discord.ext import commands
@@ -15,7 +16,7 @@ class Rank(commands.Cog):
             try:
                 with self.bot.database.cursor() as cursor:
                     query = "SELECT points, steam64, matchs, wins, kills, death FROM Players WHERE idDiscord = %s"
-                    cursor.execute(query, (player.id))
+                    cursor.execute(query, (player.id,))
 
                     row = cursor.fetchone()
                     if row:
@@ -47,6 +48,6 @@ class Rank(commands.Cog):
                     else:
                         await ctx.send("You or the member you listed is not in the database.")
             except Exception as err:
-                print(f"Error occured: {err}")
+                logging.error(f"Error occured: {err}")
 
                 await ctx.send("An unexpected error occured.")

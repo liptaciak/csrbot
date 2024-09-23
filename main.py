@@ -1,4 +1,5 @@
 import os
+import logging
 import asyncio
 
 import pymysql
@@ -26,9 +27,9 @@ async def on_ready():
             user = os.getenv("DB_USER")
         )
 
-        print("Connected to database.")
+        logging.info("Connected to database.")
     except MySQLError as err:
-        print(f"Error while connecting to database: {err}")
+        logging.error(f"Error while connecting to database: {err}")
 
         await bot.close()
 
@@ -37,9 +38,14 @@ async def on_disconnect():
     if bot.database:
         bot.database.close()
 
-        print("Successfully disconnected from database.")
+        logging.info("Successfully disconnected from database.")
 
-cogs = ["cogs.top", "cogs.rank", "cogs.verify", "cogs.cancel_match"]
+cogs = [
+    "cogs.top", "cogs.ban", 
+    "cogs.rank", "cogs.verify", 
+    "cogs.unban", "cogs.cancel_match",
+    "cogs.status", "cogs.clear",
+]
 
 async def setup_bot():
     for cog in cogs:
