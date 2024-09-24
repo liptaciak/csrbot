@@ -15,7 +15,7 @@ class Status(commands.Cogs):
     @commands.has_permissions(administrator=True)
     async def status(self, ctx):
         if ctx.guild and ctx.guild.id == int(os.getenv("GUILD_ID")) and ctx.author.guild_permissions.administrator:
-            ports = [26125, 26250, 26375, 26500, 26625, 26750, 26875, 27000, 27015, 27020]
+            ports = os.getenv("SERVER_PORTS").split(",")
 
             msg = await ctx.send("Loading...")
             status_embed = discord.Embed(color=0x808080, title="Server status")
@@ -23,7 +23,7 @@ class Status(commands.Cogs):
             for port in ports:
                 await asyncio.sleep(1.5)
                 try:
-                    with RCON((os.getenv("SERVER_IP"), port), os.getenv("RCON_PASS")) as rcon:
+                    with RCON((os.getenv("SERVER_IP"), int(port)), os.getenv("RCON_PASS")) as rcon:
                         rcon("say Server is active!")
                         status_embed.add_field(name=f"**SERVER {port}**", value=":green_circle: | Active", inline=True)
                 except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:

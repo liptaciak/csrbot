@@ -12,6 +12,7 @@ Run `py main.py` to start the bot.
 
 ```yml
 SERVER_IP=<csgo server ip>
+SERVER_PORTS=<csgo server ports (separated with comma)>
 
 DISCORD_TOKEN=<discord bot token>
 RCON_PASS=<rcon password>
