@@ -26,3 +26,6 @@ class Top(commands.Cog):
                 logging.error(f"Error occured: {err}")
 
                 await ctx.send("An error occured while retrieving users from database.")
+
+async def setup(bot):
+    await bot.add_cog(Top(bot))

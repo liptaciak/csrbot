@@ -43,3 +43,6 @@ class Ban(commands.Cog):
                 logging.error(f"Error occured: {err}")
 
                 await ctx.send("An unexpected error occured.")
+
+async def setup(bot):
+    await bot.add_cog(Ban(bot))

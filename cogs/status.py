@@ -7,7 +7,7 @@ from discord.ext import commands
 
 from valve.rcon import RCON, RCONError
 
-class Status(commands.Cogs):
+class Status(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -31,3 +31,6 @@ class Status(commands.Cogs):
                     status_embed.add_field(name=f"**SERVER {port}**", value=":red_circle: | Not Active", inline=True)
 
             await msg.edit(embed=status_embed, content="")  
+
+async def setup(bot):
+    await bot.add_cog(Status(bot))

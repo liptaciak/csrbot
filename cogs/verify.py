@@ -29,7 +29,7 @@ class Verify(commands.Cog):
                             member = ctx.guild.get_member(int(userid))
                             if member:
                                 query = """INSERT INTO Players (idDiscord, steam64, points, name, matchs, wins, death, kills, rounds) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                                role = ctx.guild.get_role(1245409035948265622)
+                                role = ctx.guild.get_role(1288213511427854396)
                                 if role:
                                     await member.add_roles(role)
 
@@ -45,3 +45,6 @@ class Verify(commands.Cog):
                 logging.error(f"Error occured: {err}")
 
                 await ctx.send("An unexpected error occured.")
+
+async def setup(bot):
+    await bot.add_cog(Verify(bot))

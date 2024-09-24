@@ -4,7 +4,7 @@ import logging
 import discord
 from discord.ext import commands
 
-class Unban(commands.Cogs):
+class Unban(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -42,3 +42,6 @@ class Unban(commands.Cogs):
                 logging.error(f"Error occured: {err}")
 
                 await ctx.send("An unexpected error occured.")
+
+async def setup(bot):
+    await bot.add_cog(Unban(bot))

@@ -4,7 +4,7 @@ import logging
 import discord
 from discord.ext import commands
 
-class Clear(commands.Cogs):
+class Clear(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -23,3 +23,6 @@ class Clear(commands.Cogs):
                     return
 
             await ctx.send("Done!")
+
+async def setup(bot):
+    await bot.add_cog(Clear(bot))

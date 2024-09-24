@@ -33,3 +33,5 @@ class CancelMatch(commands.Cog):
 
                 await ctx.send(embed=error_embed)
 
+async def setup(bot):
+    await bot.add_cog(CancelMatch(bot))

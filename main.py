@@ -3,7 +3,7 @@ import logging
 import asyncio
 
 import pymysql
-from pymysql.connections import MySQLError
+from pymysql.err import MySQLError
 
 import discord
 from discord.ext import commands
@@ -44,7 +44,7 @@ cogs = [
     "cogs.top", "cogs.ban", 
     "cogs.rank", "cogs.verify", 
     "cogs.unban", "cogs.cancel_match",
-    "cogs.status", "cogs.clear",
+    "cogs.status", "cogs.clear", "cogs.matchmaking",
 ]
 
 async def setup_bot():
