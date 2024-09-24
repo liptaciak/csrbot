@@ -16,7 +16,8 @@ SERVER_IP=<csgo server ip>
 DISCORD_TOKEN=<discord bot token>
 RCON_PASS=<rcon password>
 
-GUILD_ID=<cs:r discord server id>
+GUILD_ID=<discord server id>
+QUEUE_CHANNEL_ID=<discord queue text channel id>
 
 DB_HOST=<database ip>
 DB_PASS=<database password>
