@@ -2,6 +2,8 @@ import os
 import logging
 import asyncio
 
+from collections import Counter
+
 import discord
 from discord.ext import commands
 
@@ -23,10 +25,10 @@ class Matchmaking(commands.Cog):
     
     class AcceptView(discord.ui.View):
         def __init__(self, matchmaking):
-            super().__init__()
+            super().__init__(timeout=30)
             self.matchmaking = matchmaking
 
-        @discord.ui.button(emoji=discord.PartialEmoji(name="white_check_mark"), label="Accept", style=discord.ButtonStyle.success)
+        @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
         async def accept_callback(self, button: discord.ui.Button, interaction: discord.Interaction):
             for match_id, match_data in self.matchmaking.matches.items():
                 if match_data["message"] == interaction.message.id and match_data["state"] == "accept":
@@ -44,9 +46,42 @@ class Matchmaking(commands.Cog):
                     await message.edit(embed=map_embed, view=map_view)
                     match["state"] = "map"
 
+        async def on_timeout(self):
+            for match_id, match_data in self.matchmaking.matches.items():
+                if match_data["state"] == "accept":
+                    match = match_data
+
+            if match:
+                if sum(1 for user in match["users"].values() if user["accepted"]) < 10:
+                    match["state"] = "search"
+                    
+                    not_accepted = []
+
+                    for user in match["users"]:
+                        if not user["accepted"]:
+                            not_accepted.append(user)
+
+                            member = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=match["users"][user]) 
+                            await member[0].move_to(channel=None)
+                        else:
+                            match["users"][user]["accepted"] = False
+
+                    for user in not_accepted:
+                        match["users"].pop(user)
+
+                    queue_embed = discord.Embed(color=0x808080, title=f'In queue: {len(match["users"])}/10', description="")
+                    
+                    index = 1
+                    for user in match["users"]:
+                        queue_embed.description += f"{index}. {match["users"][user]["name"]}\n"
+                        index += 1
+
+                    message = await self.matchmaking.bot.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+                    await message.edit(embed=queue_embed, view=None) 
+
     class MapView(discord.ui.View):
         def __init__(self, matchmaking):
-            super().__init__()
+            super().__init__(timeout=30)
             self.matchmaking = matchmaking
             self.add_item(discord.ui.Select(
                 placeholder="Choose a map...",
@@ -63,144 +98,190 @@ class Matchmaking(commands.Cog):
                     discord.SelectOption(label="Vertigo", value="de_vertigo", emoji=discord.PartialEmoji(name="de_vertigo", id=1259159498858168430))
                 ]
             ))
-                          
-    @discord.ui.select(placeholder="Choose a map...")
-    async def map_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
-        selected_map = select.values[0]
+                 
+        @discord.ui.select(placeholder="Choose a map...")
+        async def map_callback(self, select: discord.ui.Select, interaction: discord.Interaction):
+            selected_map = select.values[0]
+            
+            for match_id, match_data in self.matchmaking.matches.items():
+                if match_data["message"] == interaction.message.id and match_data["state"] == "map":
+                    match = match_data
+            
+            if match and interaction.user.id in match["users"]:
+                match["users"][interaction.user.id]["vote"] = selected_map
+
+                if sum(1 for user in match["users"] if user["vote"] != None) == 10:
+                    ready_embed = discord.Embed(color=0x808080, title="Preparing server...", description="*This can take up to 2-3 minutes*")
+
+                    message = await interaction.user.guild.get_channel(os.getenv("QUEUE_CHANNEL_ID")).fetch_message(match["message"]) 
+                    await message.edit(embed=ready_embed, view=None)
+                    
+                    votes = [user["vote"] for user in match["users"]]
+
+                    vote_count = Counter(votes)
+                    max_votes = max(vote_count.values())
+
+                    maps = [map for map, count in vote_count.items() if count == max_votes]
+                    match["map"] = maps[0]
+                    
+                    await self.matchmaking.prepare_server(match)
+
+        async def on_timeout(self):
+            for match_id, match_data in self.matchmaking.matches.items():
+                if match_data["state"] == "map":
+                    match = match_data
+
+            if match:
+                votes = [user["vote"] for user in match["users"] if user["vote"] != None]
+                vote_count = Counter(votes)
+                max_votes = max(vote_count.values())
+
+                maps = [map for map, count in vote_count.items() if count == max_votes]
+                match["map"] = maps[0]
+
+                await self.matchmaking.prepare_server(match)
+    
+    async def prepare_server(match):
+        match["state"] = "preparing"
+                    
+        with self.bot.database.cursor() as cursor:
+            team_ct = []
+            team_t = []
+
+            data = ""
+
+            for id, user in list(match["users"].items())[:5]:
+                query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
+
+                cursor.execute(query, (str(id),))
+                row = cursor.fetchall()
+
+                team_ct.append(id)
+                
+                if row:
+                    match["users"][id]["steamid"] = row[0]
+                    data += str(row[0]) + "C\n"
+
+            for id, user in list(match["users"].items())[5:10]:
+                query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
+
+                cursor.execute(query, (str(id),))
+                row = cursor.fetchall()
+
+                team_t.append(id)
+                
+                if row:
+                    match["users"][id]["steamid"] = row[0]
+                    data += str(row[0]) + "T\n"
+
+            file = open("./csgo/addons/sourcemod/configs/whitelist.txt", "w")
+            file.write(data)
+            
+            file.close()
         
-        for match_id, match_data in self.matchmaking.matches.items():
-            if match_data["message"] == interaction.message.id and match_data["state"] == "map":
-                match = match_data
+        ports = os.getenv("SERVER_PORTS").split(",");
         
-        if match and interaction.user.id in match["users"]:
-            match["users"][interaction.user.id]["vote"] = selected_map
+        for port in ports:
+            await asyncio.sleep(1.5)
+            
+            try: 
+                with RCON((os.getenv("SERVER_IP"), int(port)), os.getenv("RCON_PASS")) as rcon:
+                    result = rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][0]}" "team_{match["users"][5]}"')
+                    logging.info(f"Match created: {result}")
+            except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
+                logging.error(f"RCON Error occured on port {port}: {err}")
+                continue
+            
+            if result != "Active\n":
+                server_port = port
+                break
+            else:
+                logging.info(f"Port {port} is active!")
+                continue
 
-            if sum(1 for user in match["users"] if user["vote"] != None) == 10:
-                ready_embed = discord.Embed(color=0x808080, title="Preparing server...", description="*This can take up to 2-3 minutes*")
+        await asyncio.sleep(60.0)
 
-                message = await interaction.user.guild.get_channel(os.getenv("QUEUE_CHANNEL_ID")).fetch_message(match["message"]) 
-                await message.edit(embed=ready_embed, view=None)
+        embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][0]} VS team_{match["users"][5]}**', description="The server is Ready! GLHF!", color = 0x808080)
+        
+        embed_ready.add_field(name="**IP**", value=f'`{str(os.getenv("SERVER_IP"))}:{str(server_port)}``', inline=True)
 
-                match["state"] = "preparing"
-                
-                with self.matchmaking.bot.database.cursor() as cursor:
-                    team_ct = []
-                    team_t = []
+        embed_ready.add_field(name="**Map**", value=f'{match["map"]}', inline=True)
+        embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
 
-                    data = ""
+        
+        embed_ready.add_field(name=f'CT **team_{match["users"][0]}**', value=team_ct, inline=True)
+        embed_ready.add_field(name=f'T **team_{match["users"][5]}**', value=team_t, inline=True)
 
-                    for id, user in list(match["users"].items())[:5]:
-                        query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
+        embed_ready.set_footer(text="If all players don't connect in 5 minutes, the server will be shut down.")
+        
+        for id, user in list(match["users"].items()):
+            user = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[id])
+            
+            await user[0].move_to(channel=None)
 
-                        cursor.execute(query, (str(id),))
-                        row = cursor.fetchall()
-
-                        team_ct.append(id)
-                        
-                        if row:
-                            match["users"][id]["steamid"] = row[0]
-                            data += str(row[0]) + "C\n"
-
-                    for id, user in list(match["users"].items())[5:10]:
-                        query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
-
-                        cursor.execute(query, (str(id),))
-                        row = cursor.fetchall()
-
-                        team_t.append(id)
-                        
-                        if row:
-                            match["users"][id]["steamid"] = row[0]
-                            data += str(row[0]) + "T\n"
-
-                    data -= "\n"
-
-                    file = open("./csgo/addons/sourcemod/configs/whitelist.txt", "w")
-                    file.write(data)
-                    
-                    file.close()
-                
-                ports = os.getenv("SERVER_PORTS").split(",");
-                
-                for port in ports:
-                    await asyncio.sleep(1.5)
-                    
-                    try: 
-                        with RCON((os.getenv("SERVER_IP"), int(port)), os.getenv("RCON_PASS")) as rcon:
-                            result = rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][0]}" "team_{match["users"][5]}"')
-                            logging.info(f"Match created: {result}")
-                    except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
-                        logging.error(f"RCON Error occured on port {port}: {err}")
-                        continue
-                    
-                    if result != "Active\n":
-                        server_port = port
-                        break
-                    else:
-                        logging.info(f"Port {port} is active!")
-                        continue
-
-                await asyncio.sleep(60.0)
-
-                embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][0]} VS team_{match["users"][5]}**', description="The server is Ready! GLHF!", color = 0x808080)
-                
-                embed_ready.add_field(name="**IP**", value=f'`{str(os.getenv("SERVER_IP"))}:{str(server_port)}``', inline=True)
-
-                embed_ready.add_field(name="**Map**", value=f'{match["map"]}', inline=True)
-                embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
-
-                
-                embed_ready.add_field(name=f'CT **team_{match["users"][0]}**', value=team_ct, inline=True)
-                embed_ready.add_field(name=f'T **team_{match["users"][5]}**', value=team_t, inline=True)
-
-                embed_ready.set_footer(text="If all players don't connect in 5 minutes, the server will be shut down.")
-                
-                for id, user in list(match["users"].items()):
-                    user = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[id])
-                    
-                    await user[0].move_to(channel=None)
-
-                match = {
-                    "map": "de_cache",
-                    "users": {}, 
-                    "groups": {},
-                    "state": "pre-search", 
-                    "message": None 
-                }
+        match = {
+            "map": "de_cache",
+            "users": {}, 
+            "groups": {},
+            "state": "pre-search", 
+            "message": None 
+        }
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         queue_embed = discord.Embed(color=0x808080, title="In queue: 0/10", description="")
         
-        if after.channel and after.channel.id in self.matches:
-            for user in after.channel.members:
-                if user.id != member.id and user.id not in self.matches[after.channel.id]["users"]:
-                    await user.move_to(channel=None)
+        if after.channel and after.channel.id in self.matches or before.channel and before.channel.id in self.matches:
+            if after.channel:
+                for user in after.channel.members:
+                    if user.id != member.id and user.id not in self.matches[after.channel.id]["users"]:
+                        await user.move_to(channel=None)
 
-            if before.channel == None or after.channel.id != before.channel.id:
+            if before.channel == None or after.channel and after.channel.id != before.channel.id:
                 if self.matches[after.channel.id]["state"] == "pre-search":
                     queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(embed=queue_embed)
 
                     self.matches[after.channel.id]["message"] = queue_msg.id
                     self.matches[after.channel.id]["state"] = "search"
 
-                if member.id not in self.matches[after.channel.id]["users"]: 
+                if after.channel and member.id not in self.matches[after.channel.id]["users"]: 
                     if len(self.matches[after.channel.id]["users"]) < 10 and self.matches[after.channel.id]["state"] == "search": 
-                        self.matches[after.channel.id]["users"][member.id] = { "team": None, "steamid": None, "accepted": False, "vote": None }
+                        self.matches[after.channel.id]["users"][member.id] = { "name": member.name, "team": None, "steamid": None, "accepted": False, "vote": None }
+
+                        message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"])
+                        
+                        queue_embed.title = f'In queue: {len(self.matches[after.channel.id]["users"])}/10'
+                        
+                        index = 1
+                        for user in self.matches[after.channel.id]["users"]:
+                            queue_embed.description += f"{index}. {self.matches[after.channel.id]["users"][user]["name"]}\n"
+                            index += 1
+
+                        await message.edit(embed=queue_embed)
 
                         if len(self.matches[after.channel.id]["users"]) == 10:
                             accept_embed = discord.Embed(color=0x808080, title="The queue has filled up!", description="*Click on :white_check_mark: to accept, you have 30 seconds!*")
                             accept_view = self.AcceptView(self)
                             
-                            message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"]) 
                             await message.edit(embed=accept_embed, view=accept_view)
-                            
+                                 
                             self.matches[after.channel.id]["state"] = "accept"
+            else:
+                if before.channel and before.channel.id in self.matches:
+                    if len(self.matches[before.channel.id]["users"]) > 0 and member.id in self.matches[before.channel.id]["users"] and self.matches[before.channel.id]["state"] == "search":
+                        self.matches[before.channel.id]["users"].pop(member.id)
+                        
+                        message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[before.channel.id]["message"])
+                        
+                        queue_embed = discord.Embed(color=0x808080, description="")
+                        queue_embed.title = f'In queue: {len(self.matches[before.channel.id]["users"])}/10'
+                        
+                        index = 1
+                        for user in self.matches[before.channel.id]["users"]:
+                            queue_embed.description += f"{index}. {self.matches[before.channel.id]["users"][user]["name"]}\n"
+                            index += 1
 
-                else:
-                    if before.channel and before.channel.id in self.matches:
-                        if len(self.matches[before.channel.id]["users"]) > 0 and member.id in self.matches[before.channel.id]["users"] and self.matches[before.channel.id]["state"] == "search":
-                            self.matches[before.channel.id]["users"].remove(member.id)
+                        await message.edit(embed=queue_embed)
 
 async def setup(bot):
     await bot.add_cog(Matchmaking(bot))
