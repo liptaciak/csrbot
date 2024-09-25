@@ -29,7 +29,8 @@ class Verify(commands.Cog):
                             member = ctx.guild.get_member(int(userid))
                             if member:
                                 query = """INSERT INTO Players (idDiscord, steam64, points, name, matchs, wins, death, kills, rounds) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)"""
-                                role = ctx.guild.get_role(1288213511427854396)
+
+                                role = ctx.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
                                 if role:
                                     await member.add_roles(role)
 

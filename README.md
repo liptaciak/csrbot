@@ -19,6 +19,7 @@ RCON_PASS=<rcon password>
 
 GUILD_ID=<discord server id>
 QUEUE_CHANNEL_ID=<discord queue text channel id>
+VERIFIED_ROLE_ID=<discord verified role id>
 
 DB_HOST=<database ip>
 DB_PASS=<database password>

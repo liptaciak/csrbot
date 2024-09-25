@@ -34,7 +34,7 @@ class Rank(commands.Cog):
                         kd = float(row[4]) / float(row[5]) if float(row[5]) != 0 else 0.0
                         avg = float(row[4]) / float(row[2]) if float(row[2]) != 0 else 0.0
 
-                        rank_embed = discord.Embed(color=0x808080, title=f"{ranks[user_rank][2]} {player.name} stats!", description=f"```py\nELO: {row[0]}\nLevel: {user_rank + 1}\nMatches: {row[2]}\nWins: {row[3]}\nKDR: {kd}\nAVG: {avg}\nSteamID64: {row[1]}```")
+                        rank_embed = discord.Embed(color=0x808080, title=f"{ranks[user_rank][2]} {player.name} stats!", description=f"```py\nELO: {row[0]}\nLevel: {user_rank + 1}\n\nMatches: {row[2]}\nWins: {row[3]}\n\nKDR: {kd}\nAVG: {avg}\n\nSteamID64: {row[1]}```")
                         
                         query = "SELECT FirstDay FROM Awards WHERE steam64 = %s"
                         cursor.execute(query, (row[1]))
