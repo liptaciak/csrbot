@@ -46,7 +46,7 @@ class Matchmaking(commands.Cog):
                     map_view = self.matchmaking.MapView(self.matchmaking)
 
                     message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-                    await message.edit(embed=map_embed, view=map_view)
+                    await message.edit(content=None, embed=map_embed, view=map_view)
 
                     match["state"] = "map"
 
@@ -75,15 +75,20 @@ class Matchmaking(commands.Cog):
                     for user in not_accepted:
                         match["users"].pop(user)
 
-                    queue_embed = discord.Embed(color=0x808080, title=f'In queue: {len(match["users"])}/4', description="")
+                    queue_embed = discord.Embed(color=0x808080, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
                     
                     index = 1
                     for user in match["users"]:
                         queue_embed.description += f"{index}. {match["users"][user]["name"]}\n"
                         index += 1
+                    
+                    channel = self.matchmaking.bot.get_channel(match)
+                    role = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(os.getenv("VERIFIED_ROLE_ID"))
+
+                    asyncio.create_task(self.matchmaking.revert_permissions(channel, role))
 
                     message = await self.matchmaking.bot.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-                    await message.edit(embed=queue_embed, view=None) 
+                    await message.edit(content=None, embed=queue_embed, view=None) 
 
     class MapView(discord.ui.View):
         def __init__(self, matchmaking):
@@ -146,7 +151,7 @@ class Matchmaking(commands.Cog):
 
                 await self.matchmaking.prepare_server(match)
 
-    async def prepare_server(match):
+    async def prepare_server(self, match):
         match["state"] = "preparing"
                     
         with self.bot.database.cursor() as cursor:
@@ -155,7 +160,7 @@ class Matchmaking(commands.Cog):
 
             data = ""
 
-            for id, user in list(match["users"].items())[:2]:
+            for id, user in list(match["users"].items())[:1]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
@@ -167,7 +172,7 @@ class Matchmaking(commands.Cog):
                     match["users"][id]["steamid"] = row[0]
                     data += str(row[0]) + "C\n"
 
-            for id, user in list(match["users"].items())[2:4]:
+            for id, user in list(match["users"].items())[1:3]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
@@ -223,20 +228,28 @@ class Matchmaking(commands.Cog):
             user = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[id])
             
             await user[0].move_to(channel=None)
-
+        
         match = {
-            "max": 10,
+            "max": match["max"],
             "map": "de_cache",
             "users": {}, 
             "groups": {},
             "state": "pre-search", 
             "message": None 
         }
+                    
+        channel = self.bot.get_channel(match)
+        role = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(os.getenv("VERIFIED_ROLE_ID"))
+
+        asyncio.create_task(self.revert_permissions(channel, role))
+
+    async def revert_permissions(self, channel, role):
+        if self.matches[channel.id]["state"] == "search" or self.matches[channel.id]["state"] == "pre-search":
+            await asyncio.sleep(1.0)
+            await channel.set_permissions(role, connect=True)
 
     @commands.Cog.listener()
-    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-        queue_embed = discord.Embed(color=0x808080, title="In queue: 0/4", description="")
-        
+    async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):        
         if after.channel and after.channel.id in self.matches or before.channel and before.channel.id in self.matches:
             if after.channel:
                 for user in after.channel.members:
@@ -244,6 +257,8 @@ class Matchmaking(commands.Cog):
                         await user.move_to(channel=None)
 
             if before.channel == None or after.channel and after.channel.id != before.channel.id:
+                queue_embed = discord.Embed(color=0x808080, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
+
                 if self.matches[after.channel.id]["state"] == "pre-search":
                     queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(embed=queue_embed)
 
@@ -256,31 +271,48 @@ class Matchmaking(commands.Cog):
 
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"])
                         
-                        queue_embed.title = f'In queue: {len(self.matches[after.channel.id]["users"])}/4'
+                        queue_embed.title = f'{member.name} joined. In queue: {len(self.matches[after.channel.id]["users"])}/{self.matches[after.channel.id]["max"]}'
                         
                         index = 1
                         for user in self.matches[after.channel.id]["users"]:
                             queue_embed.description += f"{index}. {self.matches[after.channel.id]["users"][user]["name"]}\n"
                             index += 1
+                        
+                        role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
+
+                        await after.channel.set_permissions(role, connect=False)
+                        asyncio.create_task(self.revert_permissions(after.channel, role))
 
                         await message.edit(embed=queue_embed)
 
                         if len(self.matches[after.channel.id]["users"]) == self.matches[after.channel.id]["max"]:
-                            accept_embed = discord.Embed(color=0x808080, title="The queue has filled up!", description="*Click on :white_check_mark: to accept, you have 30 seconds!*")
-                            accept_view = self.AcceptView(self)
+                            accept_embed = discord.Embed(color=0x808080, title="The queue has filled up!", description="*Click on button to accept, you have 30 seconds!*")
+                            accept_view = self.AcceptView(self) 
                             
-                            await message.edit(embed=accept_embed, view=accept_view)
-                                 
+                            accept_content = ""
+                            for user in self.matches[after.channel.id]["users"]:
+                                accept_content += f"<@{user}> "
+
+                            accept_message = await message.channel.send(content=accept_content, embed=accept_embed, view=accept_view)
+                            await message.delete()
+
                             self.matches[after.channel.id]["state"] = "accept"
+                            self.matches[after.channel.id]["message"] = accept_message.id
+
             else:
                 if before.channel and before.channel.id in self.matches:
                     if len(self.matches[before.channel.id]["users"]) > 0 and member.id in self.matches[before.channel.id]["users"] and self.matches[before.channel.id]["state"] == "search":
                         self.matches[before.channel.id]["users"].pop(member.id)
-                        
+                         
+                        role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
+
+                        await before.channel.set_permissions(role, connect=False)
+                        asyncio.create_task(revert_permissions(before.channel, role))
+                       
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[before.channel.id]["message"])
                         
                         queue_embed = discord.Embed(color=0x808080, description="")
-                        queue_embed.title = f'In queue: {len(self.matches[before.channel.id]["users"])}/4'
+                        queue_embed.title = f'{member.name} left. In queue: {len(self.matches[before.channel.id]["users"])}/{self.matches[before.channel.id]["max"]}'
                         
                         index = 1
                         for user in self.matches[before.channel.id]["users"]:
