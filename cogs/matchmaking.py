@@ -1,4 +1,4 @@
-import os
+import os 
 import logging
 import asyncio
 
@@ -64,10 +64,10 @@ class Matchmaking(commands.Cog):
                     not_accepted = []
 
                     for user in match["users"]:
-                        if user["accepted"] == False:
+                        if match["users"][user]["accepted"] == False:
                             not_accepted.append(user)
 
-                            member = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=match["users"][user]) 
+                            member = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[user]) 
                             await member[0].move_to(channel=None)
                         else:
                             match["users"][user]["accepted"] = False
@@ -137,17 +137,26 @@ class Matchmaking(commands.Cog):
                     await self.matchmaking.prepare_server(match)
 
         async def on_timeout(self):
+            match = None
+
             for match_id, match_data in self.matchmaking.matches.items():
                 if match_data["state"] == "map":
                     match = match_data
 
             if match:
-                votes = [user["vote"] for user in match["users"] if user["vote"] != None]
+                ready_embed = discord.Embed(color=0x808080, title="Preparing server...", description="*This can take up to 2-3 minutes*")
+
+                message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+                await message.edit(embed=ready_embed, view=None)
+ 
+                votes = [user["vote"] for user in match["users"].values()] 
                 vote_count = Counter(votes)
                 max_votes = max(vote_count.values())
 
                 maps = [map for map, count in vote_count.items() if count == max_votes]
-                match["map"] = maps[0]
+
+                if maps[0] != None:
+                    match["map"] = maps[0]
 
                 await self.matchmaking.prepare_server(match)
 
@@ -160,7 +169,7 @@ class Matchmaking(commands.Cog):
 
             data = ""
 
-            for id, user in list(match["users"].items())[:1]:
+            for id, user in list(match["users"].items())[:2]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
@@ -172,7 +181,7 @@ class Matchmaking(commands.Cog):
                     match["users"][id]["steamid"] = row[0]
                     data += str(row[0]) + "C\n"
 
-            for id, user in list(match["users"].items())[1:3]:
+            for id, user in list(match["users"].items())[2:4]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
@@ -184,19 +193,20 @@ class Matchmaking(commands.Cog):
                     match["users"][id]["steamid"] = row[0]
                     data += str(row[0]) + "T\n"
 
-            file = open("./csgo/addons/sourcemod/configs/whitelist.txt", "w")
-            file.write(data)
+            #file = open("./csgo/addons/sourcemod/configs/whitelist.txt", "w")
+            #file.write(data)
             
-            file.close()
+            #file.close()
         
         ports = os.getenv("SERVER_PORTS").split(",");
-        
+        server_port = 0
+
         for port in ports:
             await asyncio.sleep(1.5)
             
             try: 
                 with RCON((os.getenv("SERVER_IP"), int(port)), os.getenv("RCON_PASS")) as rcon:
-                    result = rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][0]["name"]}" "team_{match["users"][1]["name"]}"')
+                    result = rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
                     logging.info(f"Match created: {result}")
             except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
                 logging.error(f"RCON Error occured on port {port}: {err}")
@@ -211,34 +221,55 @@ class Matchmaking(commands.Cog):
 
         await asyncio.sleep(60.0)
 
-        embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][0]["name"]} VS team_{match["users"][1]["name"]}**', description="The server is Ready! GLHF!", color = 0x808080)
+        embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is Ready! GLHF!", color = 0x808080)
         
-        embed_ready.add_field(name="**IP**", value=f'`{str(os.getenv("SERVER_IP"))}:{str(server_port)}``', inline=True)
+        embed_ready.add_field(name="**IP**", value=f'``{str(os.getenv("SERVER_IP"))}:{str(server_port)}``', inline=True)
 
-        embed_ready.add_field(name="**Map**", value=f'{match["map"]}', inline=True)
+        embed_ready.add_field(name="**Map**", value=f'``{match["map"]}``', inline=True)
         embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
-
         
-        embed_ready.add_field(name=f'CT **team_{match["users"][0]["name"]}**', value=team_ct, inline=True)
-        embed_ready.add_field(name=f'T **team_{match["users"][1]["name"]}**', value=team_t, inline=True)
+        ct_users = ""
+        t_users = ""
+
+        index = 1
+        for user_id in list(match["users"].keys())[:2]:
+            user = match["users"][user_id]
+            ct_users += f"{index}. {user['name']}\n"
+            index += 1
+
+        index = 1
+        for user_id in list(match["users"].keys())[2:4]:
+            user = match["users"][user_id]
+            t_users += f"{index}. {user['name']}\n"
+            index += 1
+
+        embed_ready.add_field(name=f'**team_{match["users"][team_ct[0]]["name"]}**', value=ct_users, inline=True)
+        embed_ready.add_field(name=f'**team_{match["users"][team_t[0]]["name"]}**', value=t_users, inline=True)
 
         embed_ready.set_footer(text="If all players don't connect in 5 minutes, the server will be shut down.")
         
         for id, user in list(match["users"].items()):
-            user = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[id])
+            user = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[id])
             
             await user[0].move_to(channel=None)
         
+        message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+        await message.edit(embed=embed_ready, view=None)
+        
         match = {
-            "max": match["max"],
+            "max": 4,
             "map": "de_cache",
             "users": {}, 
             "groups": {},
             "state": "pre-search", 
             "message": None 
         }
-                    
-        channel = self.bot.get_channel(match)
+        
+        key = list(match.keys())[0]
+        print(key)
+
+        channel = self.bot.get_channel(key)
+
         role = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(os.getenv("VERIFIED_ROLE_ID"))
 
         asyncio.create_task(self.revert_permissions(channel, role))
@@ -307,7 +338,7 @@ class Matchmaking(commands.Cog):
                         role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
 
                         await before.channel.set_permissions(role, connect=False)
-                        asyncio.create_task(revert_permissions(before.channel, role))
+                        asyncio.create_task(self.revert_permissions(before.channel, role))
                        
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[before.channel.id]["message"])
                         
