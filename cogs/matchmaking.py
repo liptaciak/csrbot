@@ -23,6 +23,8 @@ class Matchmaking(commands.Cog):
                     "message": None 
                 }
         }
+
+        self.awaiting_accept = {}
     
     class AcceptView(discord.ui.View):
         def __init__(self, matchmaking):
@@ -66,14 +68,14 @@ class Matchmaking(commands.Cog):
                     for user in match["users"]:
                         if match["users"][user]["accepted"] == False:
                             not_accepted.append(user)
-
-                            member = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[user]) 
-                            await member[0].move_to(channel=None)
                         else:
                             match["users"][user]["accepted"] = False
 
                     for user in not_accepted:
                         match["users"].pop(user)
+
+                        member = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[user]) 
+                        await member[0].move_to(channel=None)
 
                     queue_embed = discord.Embed(color=0x808080, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
                     
@@ -82,13 +84,19 @@ class Matchmaking(commands.Cog):
                         queue_embed.description += f"{index}. {match["users"][user]["name"]}\n"
                         index += 1
                     
-                    channel = self.matchmaking.bot.get_channel(match)
+                    key = list(match.keys())
+                    channel = self.matchmaking.bot.get_channel(key[0])
                     role = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(os.getenv("VERIFIED_ROLE_ID"))
 
                     asyncio.create_task(self.matchmaking.revert_permissions(channel, role))
+                    
+                    channel = self.matchmaking.bot.get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
 
-                    message = await self.matchmaking.bot.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-                    await message.edit(content=None, embed=queue_embed, view=None) 
+                    message = await channel.fetch_message(match["message"]) 
+                    await message.delete()
+
+                    queue_msg = await channel.send(embed=queue_embed) 
+                    match["message"] = queue_msg.id
 
     class MapView(discord.ui.View):
         def __init__(self, matchmaking):
@@ -351,6 +359,51 @@ class Matchmaking(commands.Cog):
                             index += 1
 
                         await message.edit(embed=queue_embed)
+
+    class GroupAcceptView(discord.ui.View):
+        def __init__(self, matchmaking):
+            super().__init__(timeout=15)
+            self.matchmaking = matchmaking
+
+        @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
+        async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+            requests_to_delete = []
+
+            for leader in self.matchmaking.awaiting_accept:
+                if interaction.user and interaction.user.id == self.matchmaking.awaiting_accept[leader]:
+                    leader_user = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[leader])
+
+                    if leader_user[0].voice and interaction.user.voice and leader_user[0].voice.channel.id == interaction.user.voice.channel.id:
+                        self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader].append(interaction.user.id)
+                        requests_to_delete.append(leader)
+
+                        await interaction.response.send_message(f"{interaction.user.name} accepted {leader_user[0].name} invite.")
+
+            for request in requests_to_delete:
+                self.matchmaking.awaiting_accept.pop(request)
+    
+    async def delete_request(self, request_id):
+        await asyncio.sleep(15.0)
+
+        if request_id in self.matchmaking.awaiting_accept:
+            self.matchmaking.awaiting_accept.pop(request_id)
+
+    @commands.hybrid_command(name="group", description="Add an user to your group.")
+    async def group(self, ctx, member: discord.Member):
+        if ctx.author.voice and ctx.author.voice.channel != None:
+            if member.voice and member.voice.channel.id == ctx.author.voice.channel.id:
+                if ctx.author.voice.channel.id in self.matches.keys():
+                    if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["groups"]:
+                        self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id] = [ctx.author.id]
+                    
+                    self.awaiting_accept[ctx.author.id] = member.id
+                    asyncio.create_task(self.delete_request(ctx.author.id))
+
+                    group_accept_view = self.GroupAcceptView(self)
+
+                    await ctx.send(content=f"<@{member.id}> you have been invited to group by {ctx.author.name}! Click on button to accept.", view=group_accept_view)
+            else:
+                await ctx.send("You need to be in the same voice channel!")
 
 async def setup(bot):
     await bot.add_cog(Matchmaking(bot))
