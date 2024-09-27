@@ -126,7 +126,6 @@ class Matchmaking(commands.Cog):
         )
         async def map_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
             selected_map = select.values[0]
-            await interaction.response.send_message(f"Your choice: {selected_map}", ephemeral=True)
 
             for match_id, match_data in self.matchmaking.matches.items():
                 if match_data["message"] == interaction.message.id and match_data["state"] == "map":
@@ -134,6 +133,7 @@ class Matchmaking(commands.Cog):
 
             if match and interaction.user.id in match["users"]:
                 match["users"][interaction.user.id]["vote"] = selected_map
+                await interaction.response.send_message(f"Your choice: {selected_map}", ephemeral=True)
 
                 if sum(1 for user in match["users"].values() if user["vote"] is not None) == match["max"]:
                     ready_embed = discord.Embed(color=0x808080, title="Preparing server...", description="*This can take up to 2-3 minutes*")
@@ -184,37 +184,36 @@ class Matchmaking(commands.Cog):
             players = {}
             
             half = len(match["users"]) // 2
-           
+            index = 0
+
             for id, user in list(match["users"].items())[:half]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
-                row = cursor.fetchall()
+                row = cursor.fetchone()
 
                 team_ct.append(id)
                 
                 if row:
-                    if int(row[0][0]) not in players:
-                        players[int(row[0][0])] = {}
+                    players[index] = int(row[0])
+                    match["users"][id]["steamid"] = row[0]
 
-                    match["users"][id]["steamid"] = row[0][0]
-                    players[int(row[0][0])]["team"] = "CT"
+                index += 1
 
             for id, user in list(match["users"].items())[half:]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
-                row = cursor.fetchall()
+                row = cursor.fetchone()
 
                 team_t.append(id)
                 
                 if row:
-                    if int(row[0][0]) not in players:
-                        players[int(row[0][0])] = {}
+                    players[index] = int(row[0])
+                    match["users"][id]["steamid"] = row[0]
+                
+                index += 1
 
-                    match["users"][id]["steamid"] = row[0][0]
-                    players[int(row[0][0])]["team"] = "T"
-            
             ports = os.getenv("SERVER_PORTS").split(",");
             server_port = 0
 
@@ -312,7 +311,7 @@ class Matchmaking(commands.Cog):
         message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
         await message.edit(embed=embed_ready, view=None)
         
-        channel = self.bot.get_channel(key)
+        channel = self.bot.get_channel(match["id"])
         role = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(int(os.getenv("VERIFIED_ROLE_ID")))
 
         asyncio.create_task(self.revert_permissions(channel, role))
