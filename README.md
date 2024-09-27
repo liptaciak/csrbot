@@ -14,6 +14,7 @@ Run `py main.py` to start the bot.
 SERVER_IP=<csgo server ip>
 SERVER_PORTS=<csgo server ports (separated with comma)>
 
+STEAM_API_KEY=<steam api key>
 DISCORD_TOKEN=<discord bot token>
 RCON_PASS=<rcon password>
 

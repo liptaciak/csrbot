@@ -1,8 +1,10 @@
-import os 
+import os
+import json
 import logging
 import asyncio
 
 from collections import Counter
+from datetime import timedelta
 
 import discord
 from discord.ext import commands
@@ -15,12 +17,13 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 4,
+                    "max": 2,
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
                     "state": "pre-search", 
-                    "message": None 
+                    "message": None,
+                    "id": None
                 }
         }
 
@@ -77,6 +80,9 @@ class Matchmaking(commands.Cog):
                         member = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[user]) 
                         await member[0].move_to(channel=None)
 
+                        if not member[0].guild_permissions.administrator:
+                            await member[0].timeout(timedelta(minutes=3))
+
                     queue_embed = discord.Embed(color=0x808080, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
                     
                     index = 1
@@ -86,7 +92,7 @@ class Matchmaking(commands.Cog):
                     
                     key = list(match.keys())
                     channel = self.matchmaking.bot.get_channel(key[0])
-                    role = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(os.getenv("VERIFIED_ROLE_ID"))
+                    role = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(int(os.getenv("VERIFIED_ROLE_ID")))
 
                     asyncio.create_task(self.matchmaking.revert_permissions(channel, role))
                     
@@ -174,10 +180,12 @@ class Matchmaking(commands.Cog):
         with self.bot.database.cursor() as cursor:
             team_ct = []
             team_t = []
-
-            data = ""
-
-            for id, user in list(match["users"].items())[:2]:
+            
+            players = {}
+            
+            half = len(match["users"]) // 2
+           
+            for id, user in list(match["users"].items())[:half]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
@@ -186,10 +194,13 @@ class Matchmaking(commands.Cog):
                 team_ct.append(id)
                 
                 if row:
-                    match["users"][id]["steamid"] = row[0]
-                    data += str(row[0]) + "C\n"
+                    if int(row[0][0]) not in players:
+                        players[int(row[0][0])] = {}
 
-            for id, user in list(match["users"].items())[2:4]:
+                    match["users"][id]["steamid"] = row[0][0]
+                    players[int(row[0][0])]["team"] = "CT"
+
+            for id, user in list(match["users"].items())[half:]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
                 cursor.execute(query, (str(id),))
@@ -198,34 +209,69 @@ class Matchmaking(commands.Cog):
                 team_t.append(id)
                 
                 if row:
-                    match["users"][id]["steamid"] = row[0]
-                    data += str(row[0]) + "T\n"
+                    if int(row[0][0]) not in players:
+                        players[int(row[0][0])] = {}
 
-            #file = open("./csgo/addons/sourcemod/configs/whitelist.txt", "w")
-            #file.write(data)
+                    match["users"][id]["steamid"] = row[0][0]
+                    players[int(row[0][0])]["team"] = "T"
             
-            #file.close()
+            ports = os.getenv("SERVER_PORTS").split(",");
+            server_port = 0
+
+            for port in ports:
+                await asyncio.sleep(1.5)
+            
+                try: 
+                    with RCON((os.getenv("SERVER_IP"), int(port)), os.getenv("RCON_PASS")) as rcon:
+                        result = rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
+                        logging.info(f"Match created: {result}")
+                except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
+                    logging.error(f"RCON Error occured on port {port}: {err}")
+                    continue
+            
+                if result != "Active\n":
+                    server_port = port
+                    break
+                else:
+                    logging.info(f"Port {port} is active!")
+                    continue
         
-        ports = os.getenv("SERVER_PORTS").split(",");
-        server_port = 0
+            if server_port == 0:
+                embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.", color=0x808080)
+            
+                channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
+                message = await channel.fetch_message(match["message"]) 
+            
+                await message.delete()
+                error_msg = await channel.send(content="<@830812204030623824> <@884172802679242823> <@953319088946544670>", embed=embed_error, view=None) 
 
-        for port in ports:
-            await asyncio.sleep(1.5)
+                for id, user in list(match["users"].items()):
+                    user = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[id])
             
-            try: 
-                with RCON((os.getenv("SERVER_IP"), int(port)), os.getenv("RCON_PASS")) as rcon:
-                    result = rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
-                    logging.info(f"Match created: {result}")
-            except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
-                logging.error(f"RCON Error occured on port {port}: {err}")
-                continue
+                    await user[0].move_to(channel=None)
             
-            if result != "Active\n":
-                server_port = port
-                break
-            else:
-                logging.info(f"Port {port} is active!")
-                continue
+                channel = self.bot.get_channel(match["id"])
+                role = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(int(os.getenv("VERIFIED_ROLE_ID")))
+
+                await channel.set_permissions(role, connect=False) 
+
+                max_players = match["max"]
+                self.matches[match["id"]] = {
+                    "max": max_players,
+                    "map": "de_cache",
+                    "users": {}, 
+                    "groups": {},
+                    "state": "pre-search", 
+                    "message": None,
+                    "id": None,
+                }
+            
+                return
+
+            ip = str(os.getenv("SERVER_IP")) + ":" + str(server_port)
+
+            query = "INSERT INTO whitelist (ip, players) VALUES (%s, %s)"
+            cursor.execute(query, (ip, json.dumps(players)))
 
         await asyncio.sleep(60.0)
 
@@ -238,15 +284,17 @@ class Matchmaking(commands.Cog):
         
         ct_users = ""
         t_users = ""
+        
+        half = len(match["users"]) // 2
 
         index = 1
-        for user_id in list(match["users"].keys())[:2]:
+        for user_id in list(match["users"].keys())[:half]:
             user = match["users"][user_id]
             ct_users += f"{index}. {user['name']}\n"
             index += 1
 
         index = 1
-        for user_id in list(match["users"].keys())[2:4]:
+        for user_id in list(match["users"].keys())[half:]:
             user = match["users"][user_id]
             t_users += f"{index}. {user['name']}\n"
             index += 1
@@ -264,27 +312,25 @@ class Matchmaking(commands.Cog):
         message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
         await message.edit(embed=embed_ready, view=None)
         
-        match = {
-            "max": 4,
+        channel = self.bot.get_channel(key)
+        role = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(int(os.getenv("VERIFIED_ROLE_ID")))
+
+        asyncio.create_task(self.revert_permissions(channel, role))
+
+        max_players = match["max"]
+        self.matches[match["id"]] = {
+            "max": max_players,
             "map": "de_cache",
             "users": {}, 
             "groups": {},
             "state": "pre-search", 
-            "message": None 
+            "message": None,
+            "id": None,
         }
         
-        key = list(match.keys())[0]
-        print(key)
-
-        channel = self.bot.get_channel(key)
-
-        role = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(os.getenv("VERIFIED_ROLE_ID"))
-
-        asyncio.create_task(self.revert_permissions(channel, role))
-
     async def revert_permissions(self, channel, role):
-        if self.matches[channel.id]["state"] == "search" or self.matches[channel.id]["state"] == "pre-search":
-            await asyncio.sleep(1.0)
+        if self.matches[channel.id] and self.matches[channel.id]["state"] == "search" or self.matches[channel.id]["state"] == "pre-search":
+            await asyncio.sleep(2.5)
             await channel.set_permissions(role, connect=True)
 
     @commands.Cog.listener()
@@ -315,13 +361,11 @@ class Matchmaking(commands.Cog):
                         index = 1
                         for user in self.matches[after.channel.id]["users"]:
                             queue_embed.description += f"{index}. {self.matches[after.channel.id]["users"][user]["name"]}\n"
+
+                            self.matches[after.channel.id]["id"] = after.channel.id
                             index += 1
                         
-                        role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
-
-                        await after.channel.set_permissions(role, connect=False)
-                        asyncio.create_task(self.revert_permissions(after.channel, role))
-
+                        role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID"))) 
                         await message.edit(embed=queue_embed)
 
                         if len(self.matches[after.channel.id]["users"]) == self.matches[after.channel.id]["max"]:
@@ -331,12 +375,17 @@ class Matchmaking(commands.Cog):
                             accept_content = ""
                             for user in self.matches[after.channel.id]["users"]:
                                 accept_content += f"<@{user}> "
+                            
+                            await after.channel.set_permissions(role, connect=False)
 
                             accept_message = await message.channel.send(content=accept_content, embed=accept_embed, view=accept_view)
                             await message.delete()
 
                             self.matches[after.channel.id]["state"] = "accept"
                             self.matches[after.channel.id]["message"] = accept_message.id
+
+                        await after.channel.set_permissions(role, connect=False)
+                        asyncio.create_task(self.revert_permissions(after.channel, role))
 
             else:
                 if before.channel and before.channel.id in self.matches:
@@ -363,7 +412,9 @@ class Matchmaking(commands.Cog):
     class GroupAcceptView(discord.ui.View):
         def __init__(self, matchmaking):
             super().__init__(timeout=15)
+
             self.matchmaking = matchmaking
+            self.message = None
 
         @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
         async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -385,23 +436,33 @@ class Matchmaking(commands.Cog):
     async def delete_request(self, request_id):
         await asyncio.sleep(15.0)
 
-        if request_id in self.matchmaking.awaiting_accept:
-            self.matchmaking.awaiting_accept.pop(request_id)
+        if request_id in self.awaiting_accept:
+            self.awaiting_accept.pop(request_id)
 
     @commands.hybrid_command(name="group", description="Add an user to your group.")
     async def group(self, ctx, member: discord.Member):
         if ctx.author.voice and ctx.author.voice.channel != None:
             if member.voice and member.voice.channel.id == ctx.author.voice.channel.id:
-                if ctx.author.voice.channel.id in self.matches.keys():
-                    if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["groups"]:
-                        self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id] = [ctx.author.id]
-                    
-                    self.awaiting_accept[ctx.author.id] = member.id
-                    asyncio.create_task(self.delete_request(ctx.author.id))
+                if ctx.author.id != member.id:
+                    if ctx.author.voice.channel.id in self.matches.keys():
+                        member_already_in_group = False
 
-                    group_accept_view = self.GroupAcceptView(self)
+                        for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
+                            if member.id in group_members:
+                                member_already_in_group = True
+                        
+                        if member_already_in_group != True:
+                            if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["groups"]:
+                                self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id] = [ctx.author.id]
+                            
+                            self.awaiting_accept[ctx.author.id] = member.id
+                            asyncio.create_task(self.delete_request(ctx.author.id))
 
-                    await ctx.send(content=f"<@{member.id}> you have been invited to group by {ctx.author.name}! Click on button to accept.", view=group_accept_view)
+                            group_accept_view = self.GroupAcceptView(self)
+
+                            await ctx.send(content=f"<@{member.id}> you have been invited to group by {ctx.author.name}! Click on button to accept.", view=group_accept_view)
+                        else:
+                            await ctx.send(content=f"{member.name} is already in a group!")
             else:
                 await ctx.send("You need to be in the same voice channel!")
 
