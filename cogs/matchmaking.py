@@ -1,4 +1,4 @@
-import os
+import os 
 import json
 import logging
 import asyncio
@@ -28,7 +28,14 @@ class Matchmaking(commands.Cog):
         }
 
         self.awaiting_accept = {}
-    
+
+    class ConnectView(discord.ui.View):
+        def __init__(self, init_link: str):
+            super().__init__()
+
+            self.button = discord.ui.Button(label="Connect", url=init_link)
+            self.add_item(self.button)
+
     class AcceptView(discord.ui.View):
         def __init__(self, matchmaking):
             super().__init__(timeout=30)
@@ -41,16 +48,36 @@ class Matchmaking(commands.Cog):
                     match = match_data
 
             if match and interaction.user.id in match["users"]:
+                message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+
                 if match["users"][interaction.user.id]["accepted"] == False:
                     match["users"][interaction.user.id]["accepted"] = True
                     
-                    await interaction.response.send_message("Match accepted!", ephemeral=True)
-                    
-                if sum(1 for user in match["users"].values() if user["accepted"]) == match["max"]:
-                    map_embed = discord.Embed(color=0x808080, title="Choose a map", description="*Click on icon to select. You have 30 seconds!*")
+                    await interaction.response.defer()
+                
+                accepted = sum(1 for user in match["users"].values() if user["accepted"])
+                accepted_embed = discord.Embed(color=0x248046, title="The queue has filled up!", description=f"Users accepted: {accepted}/{match["max"]}\n")
+                accepted_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
+
+                await message.edit(embed=accepted_embed)
+
+                if accepted == match["max"]:
+                    map_embed = discord.Embed(color=0x4E5058, title="Choose a map", description="")
+                    map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 30 seconds! ")
+
+                    map_embed.add_field(name="<:cache:1289642476738707568> Cache", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value="Votes: 0", inline=True)
+
                     map_view = self.matchmaking.MapView(self.matchmaking)
 
-                    message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
                     await message.edit(content=None, embed=map_embed, view=map_view)
 
                     match["state"] = "map"
@@ -67,6 +94,7 @@ class Matchmaking(commands.Cog):
                     match["state"] = "search"
                     
                     not_accepted = []
+                    not_accepted_ping = ""
 
                     for user in match["users"]:
                         if match["users"][user]["accepted"] == False:
@@ -76,6 +104,7 @@ class Matchmaking(commands.Cog):
 
                     for user in not_accepted:
                         match["users"].pop(user)
+                        not_accepted_ping += f"<@{user}> "
 
                         member = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[user]) 
                         await member[0].move_to(channel=None)
@@ -83,15 +112,14 @@ class Matchmaking(commands.Cog):
                         if not member[0].guild_permissions.administrator:
                             await member[0].timeout(timedelta(minutes=3))
 
-                    queue_embed = discord.Embed(color=0x808080, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
+                    queue_embed = discord.Embed(color=0x4E5058, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
                     
                     index = 1
                     for user in match["users"]:
                         queue_embed.description += f"{index}. {match["users"][user]["name"]}\n"
                         index += 1
                     
-                    key = list(match.keys())
-                    channel = self.matchmaking.bot.get_channel(key[0])
+                    channel = self.matchmaking.bot.get_channel(match["id"])
                     role = self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(int(os.getenv("VERIFIED_ROLE_ID")))
 
                     asyncio.create_task(self.matchmaking.revert_permissions(channel, role))
@@ -101,7 +129,7 @@ class Matchmaking(commands.Cog):
                     message = await channel.fetch_message(match["message"]) 
                     await message.delete()
 
-                    queue_msg = await channel.send(embed=queue_embed) 
+                    queue_msg = await channel.send(content=f"{not_accepted_ping}failed to accept the match.", embed=queue_embed) 
                     match["message"] = queue_msg.id
 
     class MapView(discord.ui.View):
@@ -133,20 +161,53 @@ class Matchmaking(commands.Cog):
 
             if match and interaction.user.id in match["users"]:
                 match["users"][interaction.user.id]["vote"] = selected_map
-                await interaction.response.send_message(f"Your choice: {selected_map}", ephemeral=True)
+
+                await interaction.response.defer()
+                
+                maps_embed = discord.Embed(color=0x4E5058, title="Choose a map", description="") 
+                maps_embed.set_footer(text="You can change your vote. Click on icon to select. You have 30 seconds! ")
+                
+                vote_counts = {
+                    "de_cache": 0, "de_dust2": 0,
+                    "de_inferno": 0, "de_mirage": 0,
+                    "de_nuke": 0, "de_nuke_old": 0,
+                    "de_overpass": 0, "de_seaside": 0,
+                    "de_train": 0, "de_vertigo": 0
+                }
+
+                for user_vote in match["users"].values():
+                    vote = user_vote.get("vote")
+
+                    if vote in vote_counts:
+                        vote_counts[vote] += 1
+
+                maps_embed.add_field(name="<:cache:1289642476738707568> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
+                maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
+                maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
+                maps_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value=f'Votes: {vote_counts["de_mirage"]}', inline=True)
+                maps_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
+                maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
+                maps_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value=f'Votes: {vote_counts["de_overpass"]}', inline=True)
+                maps_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value=f'Votes: {vote_counts["de_seaside"]}', inline=True)
+                maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
+                maps_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value=f'Votes: {vote_counts["de_vertigo"]}', inline=True)
+
+                message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+                await message.edit(embed=maps_embed)
 
                 if sum(1 for user in match["users"].values() if user["vote"] is not None) == match["max"]:
-                    ready_embed = discord.Embed(color=0x808080, title="Preparing server...", description="*This can take up to 2-3 minutes*")
-
-                    message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-                    await message.edit(embed=ready_embed, view=None)
-                    
                     votes = [user["vote"] for user in match["users"].values()]
                     vote_count = Counter(votes)
                     max_votes = max(vote_count.values())
 
                     maps = [map for map, count in vote_count.items() if count == max_votes]
                     match["map"] = maps[0]
+                    
+                    ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description=f'Map: ``{match["map"]}``\n')
+                    ready_embed.set_footer(text="This can take up to 1-2 minutes")
+
+                    message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+                    await message.edit(embed=ready_embed, view=None)
 
                     await self.matchmaking.prepare_server(match)
 
@@ -158,11 +219,6 @@ class Matchmaking(commands.Cog):
                     match = match_data
 
             if match:
-                ready_embed = discord.Embed(color=0x808080, title="Preparing server...", description="*This can take up to 2-3 minutes*")
-
-                message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-                await message.edit(embed=ready_embed, view=None)
- 
                 votes = [user["vote"] for user in match["users"].values()] 
                 vote_count = Counter(votes)
                 max_votes = max(vote_count.values())
@@ -171,6 +227,12 @@ class Matchmaking(commands.Cog):
 
                 if maps[0] != None:
                     match["map"] = maps[0]
+
+                ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description=f'Map: ``{match["map"]}``\n')
+                ready_embed.set_footer(text="This can take up to 1-2 minutes")
+
+                message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+                await message.edit(embed=ready_embed, view=None)
 
                 await self.matchmaking.prepare_server(match)
 
@@ -195,7 +257,10 @@ class Matchmaking(commands.Cog):
                 team_ct.append(id)
                 
                 if row:
-                    players[index] = int(row[0])
+                    if index not in players:
+                        players[index] = {}
+
+                    players[index] = { "steamid": str(row[0]), "team": "CT" }
                     match["users"][id]["steamid"] = row[0]
 
                 index += 1
@@ -209,7 +274,10 @@ class Matchmaking(commands.Cog):
                 team_t.append(id)
                 
                 if row:
-                    players[index] = int(row[0])
+                    if index not in players:
+                        players[index] = {}
+
+                    players[index] = { "steamid": str(row[0]), "team": "T" }
                     match["users"][id]["steamid"] = row[0]
                 
                 index += 1
@@ -236,7 +304,7 @@ class Matchmaking(commands.Cog):
                     continue
         
             if server_port == 0:
-                embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.", color=0x808080)
+                embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.", color=0xDA373C)
             
                 channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
                 message = await channel.fetch_message(match["message"]) 
@@ -274,7 +342,7 @@ class Matchmaking(commands.Cog):
 
         await asyncio.sleep(60.0)
 
-        embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is Ready! GLHF!", color = 0x808080)
+        embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is Ready! GLHF!", color = 0x4E5058)
         
         embed_ready.add_field(name="**IP**", value=f'``{str(os.getenv("SERVER_IP"))}:{str(server_port)}``', inline=True)
 
@@ -308,8 +376,10 @@ class Matchmaking(commands.Cog):
             
             await user[0].move_to(channel=None)
         
+        connect_view = self.ConnectView(f"https://csrestored.xyz/connect.html?ip={str(os.getenv("SERVER_IP"))}:{str(server_port)}")
+
         message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-        await message.edit(embed=embed_ready, view=None)
+        await message.edit(embed=embed_ready, view=connect_view)
         
         channel = self.bot.get_channel(match["id"])
         role = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_role(int(os.getenv("VERIFIED_ROLE_ID")))
@@ -341,10 +411,10 @@ class Matchmaking(commands.Cog):
                         await user.move_to(channel=None)
 
             if before.channel == None or after.channel and after.channel.id != before.channel.id:
-                queue_embed = discord.Embed(color=0x808080, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
+                queue_embed = discord.Embed(color=0x4E5058, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
 
                 if self.matches[after.channel.id]["state"] == "pre-search":
-                    queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(embed=queue_embed)
+                    queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(content="", embed=queue_embed)
 
                     self.matches[after.channel.id]["message"] = queue_msg.id
                     self.matches[after.channel.id]["state"] = "search"
@@ -365,10 +435,12 @@ class Matchmaking(commands.Cog):
                             index += 1
                         
                         role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID"))) 
-                        await message.edit(embed=queue_embed)
+                        await message.edit(content="", embed=queue_embed)
 
                         if len(self.matches[after.channel.id]["users"]) == self.matches[after.channel.id]["max"]:
-                            accept_embed = discord.Embed(color=0x808080, title="The queue has filled up!", description="*Click on button to accept, you have 30 seconds!*")
+                            accept_embed = discord.Embed(color=0x248046, title="The queue has filled up!", description=f"Users accepted: 0/{self.matches[after.channel.id]["max"]}\n")
+                            accept_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
+
                             accept_view = self.AcceptView(self) 
                             
                             accept_content = ""
@@ -398,7 +470,7 @@ class Matchmaking(commands.Cog):
                        
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[before.channel.id]["message"])
                         
-                        queue_embed = discord.Embed(color=0x808080, description="")
+                        queue_embed = discord.Embed(color=0x4E5058, description="")
                         queue_embed.title = f'{member.name} left. In queue: {len(self.matches[before.channel.id]["users"])}/{self.matches[before.channel.id]["max"]}'
                         
                         index = 1
@@ -406,7 +478,7 @@ class Matchmaking(commands.Cog):
                             queue_embed.description += f"{index}. {self.matches[before.channel.id]["users"][user]["name"]}\n"
                             index += 1
 
-                        await message.edit(embed=queue_embed)
+                        await message.edit(content="", embed=queue_embed)
 
     class GroupAcceptView(discord.ui.View):
         def __init__(self, matchmaking):
@@ -424,6 +496,8 @@ class Matchmaking(commands.Cog):
                     leader_user = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[leader])
 
                     if leader_user[0].voice and interaction.user.voice and leader_user[0].voice.channel.id == interaction.user.voice.channel.id:
+                        if len(self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"]) == 0:
+                            if len(self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader]) 
                         self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader].append(interaction.user.id)
                         requests_to_delete.append(leader)
 
@@ -438,7 +512,7 @@ class Matchmaking(commands.Cog):
         if request_id in self.awaiting_accept:
             self.awaiting_accept.pop(request_id)
 
-    @commands.hybrid_command(name="group", description="Add an user to your group.")
+    @commands.hybrid_command(name="party", description="Add an user to your party.")
     async def group(self, ctx, member: discord.Member):
         if ctx.author.voice and ctx.author.voice.channel != None:
             if member.voice and member.voice.channel.id == ctx.author.voice.channel.id:
@@ -459,9 +533,9 @@ class Matchmaking(commands.Cog):
 
                             group_accept_view = self.GroupAcceptView(self)
 
-                            await ctx.send(content=f"<@{member.id}> you have been invited to group by {ctx.author.name}! Click on button to accept.", view=group_accept_view)
+                            await ctx.send(content=f"<@{member.id}> you have been invited to {ctx.author.name} party! Click on button to accept.", view=group_accept_view)
                         else:
-                            await ctx.send(content=f"{member.name} is already in a group!")
+                            await ctx.send(content=f"{member.name} is already in a party!")
             else:
                 await ctx.send("You need to be in the same voice channel!")
 

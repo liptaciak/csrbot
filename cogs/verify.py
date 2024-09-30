@@ -35,6 +35,8 @@ class Verify(commands.Cog):
                                     await member.add_roles(role)
 
                                     cursor.execute(query, (userid, steamid64, 1000, member.name, 0, 0, 0, 0, 0))
+                                    self.bot.database.commit()
+
                                     await ctx.send("This person has been sucessfully verified.")
                                 else:
                                     await ctx.send("An unexpected error occured.")

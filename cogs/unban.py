@@ -49,6 +49,8 @@ class Unban(commands.Cog):
 
                         if cursor.fetchone():
                             cursor.execute("DELETE FROM Banned WHERE steam64 = %s", (str(steam64),))
+                            self.bot.database.commit()
+
                             await ctx.send("The user was successfully unbanned.")
                         else:
                             await ctx.send("This user is not banned.")

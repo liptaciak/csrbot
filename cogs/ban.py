@@ -52,6 +52,7 @@ class Ban(commands.Cog):
                         else:
                             query = "INSERT INTO Banned (steam64) VALUES (%s)"
                             cursor.execute(query, (steam64,))
+                            self.bot.database.commit()
 
                             await ctx.send("The user was successfully banned.")
                     else:
