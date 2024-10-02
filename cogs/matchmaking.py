@@ -105,6 +105,11 @@ class Matchmaking(commands.Cog):
 
                     for user in not_accepted:
                         match["users"].pop(user)
+
+                        for group in match["groups"]:
+                            if user in match["groups"][group]:
+                                match["groups"][group].pop(user)
+
                         not_accepted_ping += f"<@{user}> "
 
                         member = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[user]) 
@@ -503,6 +508,10 @@ class Matchmaking(commands.Cog):
                 if before.channel and before.channel.id in self.matches:
                     if len(self.matches[before.channel.id]["users"]) > 0 and member.id in self.matches[before.channel.id]["users"] and self.matches[before.channel.id]["state"] == "search":
                         self.matches[before.channel.id]["users"].pop(member.id)
+                        
+                        for group in self.matches[before.channel.id]["groups"]:
+                            if member.id in self.matches[before.channel.id]["groups"][group]:
+                                self.matches[before.channel.id]["groups"][group].pop(member.id)
                          
                         role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
 
@@ -570,9 +579,13 @@ class Matchmaking(commands.Cog):
 
         if request_id in self.awaiting_accept:
             self.awaiting_accept.pop(request_id)
+    
+    @commands.hybrid_group(name="party", description="List users in your party.", with_app_command=True)
+    async def party_group(self, ctx):
+        await ctx.send("Status")
 
-    @commands.hybrid_command(name="party", description="Add an user to your party.")
-    async def group(self, ctx, member: discord.Member):
+    @party_group.command(name="add", aliases=["invite"], description="Add an user to your party.")
+    async def add(self, ctx, member: discord.Member):
         if ctx.author.voice and ctx.author.voice.channel != None:
             if member.voice and member.voice.channel.id == ctx.author.voice.channel.id:
                 if ctx.author.id != member.id:
@@ -597,6 +610,14 @@ class Matchmaking(commands.Cog):
                             await ctx.send(content=f"{member.name} is already in a party!")
             else:
                 await ctx.send("You need to be in the same voice channel!")
+
+    @party_group.command(name="remove", description="Removes user from your party.")
+    async def remove(self, ctx, member: discord.Member):
+        await ctx.send("Remove")
+
+    @party_group.command(name="quit", description="Leaves your party.")
+    async def quit(self, ctx):
+        await ctx.send("Quit")
 
 async def setup(bot):
     await bot.add_cog(Matchmaking(bot))
