@@ -5,6 +5,8 @@ import asyncio
 import pymysql
 from pymysql.err import MySQLError
 
+from steamwebapi.api import ISteamUser
+
 import discord
 from discord.ext import commands
 
@@ -19,6 +21,12 @@ async def on_ready():
     print(f"Logged in as: {bot.user.name} ({bot.user.id}).")
     
     await bot.tree.sync()
+
+    try:
+        bot.steamapi = ISteamUser(steam_api_key=os.getenv("STEAM_API_KEY"))
+        logging.info("Successfully connected to SteamAPI.")
+    except Exception as err:
+        logging.error(f"There was an error connecting to SteamAPI: {err}")
 
     try:
         bot.database = pymysql.connect(

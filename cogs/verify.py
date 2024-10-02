@@ -1,6 +1,8 @@
 import os
 import logging
 
+from steamwebapi.api import IPlayerService
+
 import discord
 from discord.ext import commands
 
@@ -48,6 +50,16 @@ class Verify(commands.Cog):
                 logging.error(f"Error occured: {err}")
 
                 await ctx.send("An unexpected error occured.")
+
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        if message.channel.name.startswith("ticket-"):
+            if message.content.startswith("https://steamcommunity.com/"):
+                steamid = self.bot.steamapi.resolve_vanity_url(message.content)["response"]
+                if steamid["message"] != "No match":
+                    await message.channel.send(content=f"{steamid}")
+                else:
+                    await message.channel.send(content="Could not find user.")
 
 async def setup(bot):
     await bot.add_cog(Verify(bot))

@@ -17,7 +17,7 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 2,
+                    "max": 4,
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
@@ -66,6 +66,7 @@ class Matchmaking(commands.Cog):
                     map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 30 seconds! ")
 
                     map_embed.add_field(name="<:cache:1289642476738707568> Cache", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value="Votes: 0", inline=True)
@@ -134,13 +135,14 @@ class Matchmaking(commands.Cog):
 
     class MapView(discord.ui.View):
         def __init__(self, matchmaking):
-            super().__init__(timeout=30)
+            super().__init__(timeout=20)
             self.matchmaking = matchmaking
 
         @discord.ui.select(
             placeholder="Choose a map...",
             options=[
                 discord.SelectOption(label="Cache", value="de_cache", emoji=discord.PartialEmoji(name="de_cache", id=1245790208142737548)),
+                discord.SelectOption(label="Cobblestone", value="de_cbble", emoji=discord.PartialEmoji(name="de_cobblestone", id=1245790227973279775)),
                 discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
                 discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
                 discord.SelectOption(label="Mirage", value="de_mirage", emoji=discord.PartialEmoji(name="de_mirage", id=1245790217739436032)),
@@ -168,11 +170,12 @@ class Matchmaking(commands.Cog):
                 maps_embed.set_footer(text="You can change your vote. Click on icon to select. You have 30 seconds! ")
                 
                 vote_counts = {
-                    "de_cache": 0, "de_dust2": 0,
-                    "de_inferno": 0, "de_mirage": 0,
-                    "de_nuke": 0, "de_nuke_old": 0,
-                    "de_overpass": 0, "de_seaside": 0,
-                    "de_train": 0, "de_vertigo": 0
+                    "de_cache": 0, "de_cbble": 0,
+                    "de_dust2": 0, "de_inferno": 0, 
+                    "de_mirage": 0, "de_nuke": 0, 
+                    "de_nuke_old": 0, "de_overpass": 0, 
+                    "de_seaside": 0, "de_train": 0, 
+                    "de_vertigo": 0
                 }
 
                 for user_vote in match["users"].values():
@@ -182,6 +185,7 @@ class Matchmaking(commands.Cog):
                         vote_counts[vote] += 1
 
                 maps_embed.add_field(name="<:cache:1289642476738707568> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
+                maps_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value=f'Votes: {vote_counts["de_cbble"]}', inline=True)
                 maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
                 maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
                 maps_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value=f'Votes: {vote_counts["de_mirage"]}', inline=True)
@@ -203,7 +207,8 @@ class Matchmaking(commands.Cog):
                     maps = [map for map, count in vote_count.items() if count == max_votes]
                     match["map"] = maps[0]
                     
-                    ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description=f'Map: ``{match["map"]}``\n')
+                    ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description="")
+                    ready_embed.set_author(name=f"{match["map"]}")
                     ready_embed.set_footer(text="This can take up to 1-2 minutes")
 
                     message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
@@ -228,7 +233,8 @@ class Matchmaking(commands.Cog):
                 if maps[0] != None:
                     match["map"] = maps[0]
 
-                ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description=f'Map: ``{match["map"]}``\n')
+                ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description="")
+                ready_embed.set_author(name=f"{match["map"]}")
                 ready_embed.set_footer(text="This can take up to 1-2 minutes")
 
                 message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
@@ -238,7 +244,7 @@ class Matchmaking(commands.Cog):
 
     async def prepare_server(self, match):
         match["state"] = "preparing"
-                    
+
         with self.bot.database.cursor() as cursor:
             team_ct = []
             team_t = []
@@ -246,6 +252,39 @@ class Matchmaking(commands.Cog):
             players = {}
             
             half = len(match["users"]) // 2
+            for party in self.matches[match["id"]]["groups"]:
+                user_keys = list(self.matches[match["id"]]["users"].keys())
+                party_indices = [user_keys.index(player) for player in self.matches[match["id"]]["groups"][party] if player in user_keys]
+                
+                team_ct_indices = [i for i in party_indices if i < half]
+                team_t_indices = [i for i in party_indices if i >= half]
+
+                if len(team_ct_indices) == 0 or len(team_t_indices) == 0:
+                    continue
+                
+                if len(team_ct_indices) > len(team_t_indices):
+                    for idx in team_t_indices:
+                        for swap_idx, swap_key in enumerate(self.matches[match["id"]]["users"].keys()):
+                            if swap_idx >= half:
+                                break
+
+                            if swap_key not in self.matches[match["id"]]["groups"][party]:
+                                temp_key = list(self.matches[match["id"]]["users"])[idx]
+                                self.matches[match["id"]]["users"][swap_key], self.matches[match["id"]]["users"][temp_key] = \
+                                    self.matches[match["id"]]["users"][temp_key], self.matches[match["id"]]["users"][swap_key]
+                                break
+                else:
+                    for idx in team_ct_indices:
+                        for swap_idx, swap_key in enumerate(self.matches[match["id"]]["users"].keys()):
+                            if swap_idx < half:
+                                continue
+
+                            if swap_key not in self.matches[match["id"]]["groups"][party]:
+                                temp_key = list(self.matches[match["id"]]["users"])[idx]
+                                self.matches[match["id"]]["users"][swap_key], self.matches[match["id"]]["users"][temp_key] = \
+                                    self.matches[match["id"]]["users"][temp_key], self.matches[match["id"]]["users"][swap_key]
+                                break
+
             index = 0
 
             for id, user in list(match["users"].items())[:half]:
@@ -338,7 +377,9 @@ class Matchmaking(commands.Cog):
             ip = str(os.getenv("SERVER_IP")) + ":" + str(server_port)
 
             query = "INSERT INTO whitelist (ip, players) VALUES (%s, %s)"
+
             cursor.execute(query, (ip, json.dumps(players)))
+            self.bot.database.commit()
 
         await asyncio.sleep(60.0)
 
@@ -421,7 +462,7 @@ class Matchmaking(commands.Cog):
 
                 if after.channel and member.id not in self.matches[after.channel.id]["users"]: 
                     if len(self.matches[after.channel.id]["users"]) < self.matches[after.channel.id]["max"] and self.matches[after.channel.id]["state"] == "search": 
-                        self.matches[after.channel.id]["users"][member.id] = { "name": member.name, "team": None, "steamid": None, "accepted": False, "vote": None }
+                        self.matches[after.channel.id]["users"][member.id] = { "id": member.id, "name": member.name, "team": None, "steamid": None, "accepted": False, "vote": None }
 
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"])
                         
@@ -486,6 +527,16 @@ class Matchmaking(commands.Cog):
 
             self.matchmaking = matchmaking
             self.message = None
+        
+        def get_max_party_size(self, matchid, max_players, current_players, parties):
+            max_party_size = max_players // 2
+            remaining_spots = max_players - len(current_players)
+
+            if len(parties) == 0:
+                return min(max_party_size, remaining_spots)
+            
+            largest_party_size = max(len(self.matchmaking.matches[matchid]["groups"][party]) for party in parties)
+            return min(max_party_size, remaining_spots, largest_party_size)
 
         @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
         async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -496,12 +547,20 @@ class Matchmaking(commands.Cog):
                     leader_user = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[leader])
 
                     if leader_user[0].voice and interaction.user.voice and leader_user[0].voice.channel.id == interaction.user.voice.channel.id:
-                        if len(self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"]) == 0:
-                            if len(self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader]) 
-                        self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader].append(interaction.user.id)
-                        requests_to_delete.append(leader)
+                        match = self.matchmaking.matches[leader_user[0].voice.channel.id]
 
-                        await interaction.response.send_message(f"{interaction.user.name} accepted {leader_user[0].name} invite.")
+                        for group_leader, group_members in match["groups"].items():
+                            if interaction.user.id in group_members:
+                                await interaction.response.send_message(f"{interaction.user.name} is already in a party.")
+                                return
+
+                            if len(match["groups"][leader]) - 1 < self.get_max_party_size(leader_user[0].voice.channel.id, match["max"], match["users"], match["groups"]):
+                                self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader].append(interaction.user.id)
+                                requests_to_delete.append(leader)
+                                
+                                await interaction.response.send_message(f"{interaction.user.name} accepted {leader_user[0].name} invite.")
+                            else:
+                                await interaction.response.send_message(f"{leader_user[0].name} party reached max size.")
 
             for request in requests_to_delete:
                 self.matchmaking.awaiting_accept.pop(request)
