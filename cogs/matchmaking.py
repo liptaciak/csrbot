@@ -108,7 +108,7 @@ class Matchmaking(commands.Cog):
 
                         for group in match["groups"]:
                             if user in match["groups"][group]:
-                                match["groups"][group].pop(user)
+                                match["groups"][group].remove(user)
 
                         not_accepted_ping += f"<@{user}> "
 
@@ -119,7 +119,8 @@ class Matchmaking(commands.Cog):
                             await member[0].timeout(timedelta(minutes=3))
 
                     queue_embed = discord.Embed(color=0x4E5058, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
-                    
+                    queue_embed.set_footer(text="The search channel will be locked when it reaches max size.")
+
                     index = 1
                     for user in match["users"]:
                         queue_embed.description += f"{index}. {match["users"][user]["name"]}\n"
@@ -471,7 +472,8 @@ class Matchmaking(commands.Cog):
 
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"])
                         
-                        queue_embed.title = f'{member.name} joined. In queue: {len(self.matches[after.channel.id]["users"])}/{self.matches[after.channel.id]["max"]}'
+                        queue_embed.title = f'In queue: {len(self.matches[after.channel.id]["users"])}/{self.matches[after.channel.id]["max"]}'
+                        queue_embed.set_footer(text="The search channel will be locked when it reaches max size.")
                         
                         index = 1
                         for user in self.matches[after.channel.id]["users"]:
@@ -511,7 +513,7 @@ class Matchmaking(commands.Cog):
                         
                         for group in self.matches[before.channel.id]["groups"]:
                             if member.id in self.matches[before.channel.id]["groups"][group]:
-                                self.matches[before.channel.id]["groups"][group].pop(member.id)
+                                self.matches[before.channel.id]["groups"][group].remove(member.id)
                          
                         role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
 
@@ -521,7 +523,8 @@ class Matchmaking(commands.Cog):
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[before.channel.id]["message"])
                         
                         queue_embed = discord.Embed(color=0x4E5058, description="")
-                        queue_embed.title = f'{member.name} left. In queue: {len(self.matches[before.channel.id]["users"])}/{self.matches[before.channel.id]["max"]}'
+                        queue_embed.title = f'In queue: {len(self.matches[before.channel.id]["users"])}/{self.matches[before.channel.id]["max"]}'
+                        queue_embed.set_footer(text="The search channel will be locked when it reaches max size.")
                         
                         index = 1
                         for user in self.matches[before.channel.id]["users"]:
@@ -530,6 +533,16 @@ class Matchmaking(commands.Cog):
 
                         await message.edit(content="", embed=queue_embed)
 
+    def get_max_party_size(self, matchid, max_players, current_players, parties):
+        max_party_size = max_players // 2
+        remaining_spots = max_players - len(current_players)
+
+        if len(parties) == 0:
+            return min(max_party_size, remaining_spots)
+        
+        largest_party_size = max(len(self.matches[matchid]["groups"][party]) for party in parties)
+        return min(max_party_size, remaining_spots, largest_party_size)
+
     class GroupAcceptView(discord.ui.View):
         def __init__(self, matchmaking):
             super().__init__(timeout=15)
@@ -537,16 +550,6 @@ class Matchmaking(commands.Cog):
             self.matchmaking = matchmaking
             self.message = None
         
-        def get_max_party_size(self, matchid, max_players, current_players, parties):
-            max_party_size = max_players // 2
-            remaining_spots = max_players - len(current_players)
-
-            if len(parties) == 0:
-                return min(max_party_size, remaining_spots)
-            
-            largest_party_size = max(len(self.matchmaking.matches[matchid]["groups"][party]) for party in parties)
-            return min(max_party_size, remaining_spots, largest_party_size)
-
         @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
         async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
             requests_to_delete = []
@@ -563,13 +566,16 @@ class Matchmaking(commands.Cog):
                                 await interaction.response.send_message(f"{interaction.user.name} is already in a party.")
                                 return
 
-                            if len(match["groups"][leader]) - 1 < self.get_max_party_size(leader_user[0].voice.channel.id, match["max"], match["users"], match["groups"]):
+                            if len(match["groups"][leader]) - 1 < self.matchmaking.get_max_party_size(leader_user[0].voice.channel.id, match["max"], match["users"], match["groups"]):
                                 self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader].append(interaction.user.id)
                                 requests_to_delete.append(leader)
                                 
-                                await interaction.response.send_message(f"{interaction.user.name} accepted {leader_user[0].name} invite.")
+                                success_embed = discord.Embed(title="Party", description=f"<@{interaction.user.id}> joined <@{leader_user[0].id}> party.", color=0x248046)
+                                await interaction.response.send_message(embed=success_embed)
                             else:
-                                await interaction.response.send_message(f"{leader_user[0].name} party reached max size.")
+                                requests_to_delete.append(leader)
+                                error_embed = discord.Embed(title="Party", description=f"Could not join, <@{leader_user[0].id}> party reached max size.", color=0xDA373C)
+                                await interaction.response.send_message(embed=error_embed)
 
             for request in requests_to_delete:
                 self.matchmaking.awaiting_accept.pop(request)
@@ -580,44 +586,111 @@ class Matchmaking(commands.Cog):
         if request_id in self.awaiting_accept:
             self.awaiting_accept.pop(request_id)
     
-    @commands.hybrid_group(name="party", description="List users in your party.", with_app_command=True)
-    async def party_group(self, ctx):
-        await ctx.send("Status")
-
-    @party_group.command(name="add", aliases=["invite"], description="Add an user to your party.")
-    async def add(self, ctx, member: discord.Member):
-        if ctx.author.voice and ctx.author.voice.channel != None:
-            if member.voice and member.voice.channel.id == ctx.author.voice.channel.id:
-                if ctx.author.id != member.id:
-                    if ctx.author.voice.channel.id in self.matches.keys():
-                        member_already_in_group = False
-
-                        for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
-                            if member.id in group_members:
-                                member_already_in_group = True
+    @commands.hybrid_group(name="party", description="List users in your party or invite an user.", with_app_command=True)
+    async def party_group(self, ctx, member: discord.Member = None):
+        if member == None:
+            if ctx.author.voice and ctx.author.voice.channel != None:
+                if ctx.author.voice.channel.id in self.matches.keys():
+                    content = ""
+                    
+                    for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
+                        if ctx.author.id in group_members:
+                            index = 1
+                            for group_member in group_members:
+                                if group_member in self.matches[ctx.author.voice.channel.id]["users"]:
+                                    content += f"{index}. {self.matches[ctx.author.voice.channel.id]["users"][group_member]["name"]}\n"
+                                    index += 1
                         
-                        if member_already_in_group != True:
-                            if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["groups"]:
-                                self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id] = [ctx.author.id]
+                    if content != "":
+                        status_embed = discord.Embed(title="Party", description=content, color=0x4E5058)
+                        status_embed.set_footer(text=f"Max users amount in party: {index - 1}/{self.get_max_party_size(ctx.author.voice.channel.id, self.matches[ctx.author.voice.channel.id]["max"], self.matches[ctx.author.voice.channel.id]["users"], self.matches[ctx.author.voice.channel.id]["groups"])}.")
+                        await ctx.send(embed=status_embed)
+                    else:
+                        error_embed = discord.Embed(title="Party", description="You are not in a party.", color=0xDA373C)
+                        error_embed.set_footer(text="To create a party, invite another user.")
+
+                        await ctx.send(embed=error_embed)
+        else:
+            if ctx.author.voice and ctx.author.voice.channel != None:
+                if member.voice and member.voice.channel.id == ctx.author.voice.channel.id:
+                    if ctx.author.id != member.id:
+                        if ctx.author.voice.channel.id in self.matches.keys():
+                            member_already_in_group = False
+
+                            for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
+                                if member.id in group_members:
+                                    member_already_in_group = True
                             
-                            self.awaiting_accept[ctx.author.id] = member.id
-                            asyncio.create_task(self.delete_request(ctx.author.id))
+                            if member_already_in_group != True:
+                                if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["groups"]:
+                                    self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id] = [ctx.author.id]
+                                
+                                self.awaiting_accept[ctx.author.id] = member.id
+                                asyncio.create_task(self.delete_request(ctx.author.id))
 
-                            group_accept_view = self.GroupAcceptView(self)
+                                group_accept_view = self.GroupAcceptView(self)
+                                
+                                invite_embed = discord.Embed(title="Party", description=f"<@{member.id}> you have been invited to <@{ctx.author.id}> party!", color=0x248046)
+                                invite_embed.set_footer(text="Click on button to accept, you have 15 seconds!")
 
-                            await ctx.send(content=f"<@{member.id}> you have been invited to {ctx.author.name} party! Click on button to accept.", view=group_accept_view)
-                        else:
-                            await ctx.send(content=f"{member.name} is already in a party!")
-            else:
-                await ctx.send("You need to be in the same voice channel!")
+                                await ctx.send(embed=invite_embed, view=group_accept_view)
+                            else:
+                                await ctx.send(content=f"{member.name} is already in a party!")
+                else:
+                    await ctx.send("You need to be in the same voice channel!")
 
-    @party_group.command(name="remove", description="Removes user from your party.")
+    @party_group.command(name="remove", aliases=["kick"], description="Removes user from your party.")
     async def remove(self, ctx, member: discord.Member):
-        await ctx.send("Remove")
+        if ctx.author.voice and ctx.author.voice.channel != None:
+            if ctx.author.id != member.id:
+                if ctx.author.voice.channel.id in self.matches.keys():
+                    for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
+                        if ctx.author.id == group_leader:
+                            if member.id in self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id]:
+                                self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id].remove(member.id)
+                                
+                                if len(self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id]) == 1:
+                                    self.matches[ctx.author.voice.channel.id]["groups"].pop(ctx.author.id)
 
-    @party_group.command(name="quit", description="Leaves your party.")
+                                success_embed = discord.Embed(title="Party", description=f"<@{member.id}> was successfully removed from your party.", color=0x248046)
+                                await ctx.send(embed=success_embed)
+                                
+                                return
+                            else:
+                                error_embed = discord.Embed(title="Party", description=f"<@{member.id}> is not in your party!", color=0xDA373C)
+                                error_embed.set_footer(text="You can invite users by using /party @user")
+
+                                await ctx.send(embed=error_embed)
+
+                                return
+
+                    error_embed = discord.Embed(title="Party", description=f"You are not in a party or are not the leader!", color=0xDA373C)
+                    error_embed.set_footer(text="To create a party, invite another user.")
+
+                    await ctx.send(embed=error_embed)
+
+    @party_group.command(name="quit", aliases=["leave"], description="Leaves your party.")
     async def quit(self, ctx):
-        await ctx.send("Quit")
+        if ctx.author.voice and ctx.author.voice.channel != None:
+            if ctx.author.voice.channel.id in self.matches.keys():
+                for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
+                    if group_member in group_members:
+                        self.matches[ctx.author.voice.channel.id]["groups"][group_leader].remove(ctx.author.id)
+
+                        if group_member == group_leader:
+                            self.matches[ctx.author.voice.channel.id]["groups"].pop(group_leader)
+
+                        success_embed = discord.Embed(title="Party", description="You successfully left your party.", color=0x248046)
+                        success_embed.set_footer(text="You can create a party by using /party @user.")
+
+                        await ctx.send(embed=success_embed)
+                        
+                        return
+
+                error_embed = discord.Embed(title="Party", description="You are not in a party.", color=0xDA373C)
+                error_embed.set_footer(text="To create a party, invite another user")
+
+                await ctx.send(embed=error_embed)
 
 async def setup(bot):
     await bot.add_cog(Matchmaking(bot))
