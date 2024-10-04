@@ -17,7 +17,7 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 4,
+                    "max": 2,
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
@@ -64,7 +64,8 @@ class Matchmaking(commands.Cog):
                 if accepted == match["max"]:
                     map_embed = discord.Embed(color=0x4E5058, title="Choose a map", description="")
                     map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 30 seconds! ")
-
+                    
+                    map_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:cache:1289642476738707568> Cache", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
@@ -118,7 +119,7 @@ class Matchmaking(commands.Cog):
                         if not member[0].guild_permissions.administrator:
                             await member[0].timeout(timedelta(minutes=3))
 
-                    queue_embed = discord.Embed(color=0x4E5058, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
+                    queue_embed = discord.Embed(color=0x5865F2, title=f'In queue: {len(match["users"])}/{match["max"]}', description="")
                     queue_embed.set_footer(text="The search channel will be locked when it reaches max size.")
 
                     index = 1
@@ -147,6 +148,7 @@ class Matchmaking(commands.Cog):
         @discord.ui.select(
             placeholder="Choose a map...",
             options=[
+                discord.SelectOption(label="Aztec", value="de_aztec", emoji=discord.PartialEmoji(name="aztec", id=1291798839430217728)),
                 discord.SelectOption(label="Cache", value="de_cache", emoji=discord.PartialEmoji(name="de_cache", id=1245790208142737548)),
                 discord.SelectOption(label="Cobblestone", value="de_cbble", emoji=discord.PartialEmoji(name="de_cobblestone", id=1245790227973279775)),
                 discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
@@ -176,12 +178,12 @@ class Matchmaking(commands.Cog):
                 maps_embed.set_footer(text="You can change your vote. Click on icon to select. You have 30 seconds! ")
                 
                 vote_counts = {
-                    "de_cache": 0, "de_cbble": 0,
-                    "de_dust2": 0, "de_inferno": 0, 
-                    "de_mirage": 0, "de_nuke": 0, 
-                    "de_nuke_old": 0, "de_overpass": 0, 
-                    "de_seaside": 0, "de_train": 0, 
-                    "de_vertigo": 0
+                    "de_aztec": 0, "de_cache": 0, 
+                    "de_cbble": 0, "de_dust2": 0, 
+                    "de_inferno": 0, "de_mirage": 0, 
+                    "de_nuke": 0, "de_nuke_old": 0,
+                    "de_overpass": 0, "de_seaside": 0, 
+                    "de_train": 0, "de_vertigo": 0
                 }
 
                 for user_vote in match["users"].values():
@@ -189,7 +191,8 @@ class Matchmaking(commands.Cog):
 
                     if vote in vote_counts:
                         vote_counts[vote] += 1
-
+                
+                maps_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value=f'Votes: {vote_counts["de_aztec"]}', inline=True)
                 maps_embed.add_field(name="<:cache:1289642476738707568> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
                 maps_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value=f'Votes: {vote_counts["de_cbble"]}', inline=True)
                 maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
@@ -213,13 +216,6 @@ class Matchmaking(commands.Cog):
                     maps = [map for map, count in vote_count.items() if count == max_votes]
                     match["map"] = maps[0]
                     
-                    ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description="")
-                    ready_embed.set_author(name=f"{match["map"]}")
-                    ready_embed.set_footer(text="This can take up to 1-2 minutes")
-
-                    message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-                    await message.edit(embed=ready_embed, view=None)
-
                     await self.matchmaking.prepare_server(match)
 
         async def on_timeout(self):
@@ -238,14 +234,7 @@ class Matchmaking(commands.Cog):
 
                 if maps[0] != None:
                     match["map"] = maps[0]
-
-                ready_embed = discord.Embed(color=0x3376AA, title="Preparing server... :hourglass:", description="")
-                ready_embed.set_author(name=f"{match["map"]}")
-                ready_embed.set_footer(text="This can take up to 1-2 minutes")
-
-                message = await self.matchmaking.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-                await message.edit(embed=ready_embed, view=None)
-
+                
                 await self.matchmaking.prepare_server(match)
 
     async def prepare_server(self, match):
@@ -290,9 +279,8 @@ class Matchmaking(commands.Cog):
                                 self.matches[match["id"]]["users"][swap_key], self.matches[match["id"]]["users"][temp_key] = \
                                     self.matches[match["id"]]["users"][temp_key], self.matches[match["id"]]["users"][swap_key]
                                 break
-
+                       
             index = 0
-
             for id, user in list(match["users"].items())[:half]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
 
@@ -383,11 +371,42 @@ class Matchmaking(commands.Cog):
             ip = str(os.getenv("SERVER_IP")) + ":" + str(server_port)
 
             query = "INSERT INTO whitelist (ip, players) VALUES (%s, %s)"
-
             cursor.execute(query, (ip, json.dumps(players)))
             self.bot.database.commit()
 
-        await asyncio.sleep(60.0)
+            embed_ready = discord.Embed(title=f'**Preparing... team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is being prepared... :hourglass:", color=0x4E5058)
+            
+            embed_ready.add_field(name="**IP**", value=f'``Preparing...``', inline=True)
+
+            embed_ready.add_field(name="**Map**", value=f'``{match["map"]}``', inline=True)
+            embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
+            
+            ct_users = ""
+            t_users = ""
+            
+            half = len(match["users"]) // 2
+
+            index = 1
+            for user_id in list(match["users"].keys())[:half]:
+                user = match["users"][user_id]
+                ct_users += f"{index}. {user['name']}\n"
+                index += 1
+
+            index = 1
+            for user_id in list(match["users"].keys())[half:]:
+                user = match["users"][user_id]
+                t_users += f"{index}. {user['name']}\n"
+                index += 1
+
+            embed_ready.add_field(name=f'**team_{match["users"][team_ct[0]]["name"]}**', value=ct_users, inline=True)
+            embed_ready.add_field(name=f'**team_{match["users"][team_t[0]]["name"]}**', value=t_users, inline=True)
+            
+            embed_ready.set_footer(text="This can take up to 1-2 minutes.")
+
+            message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+            await message.edit(embed=embed_ready, view=None)
+ 
+            await asyncio.sleep(60.0)
 
         embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is Ready! GLHF!", color = 0x4E5058)
         
@@ -458,7 +477,7 @@ class Matchmaking(commands.Cog):
                         await user.move_to(channel=None)
 
             if before.channel == None or after.channel and after.channel.id != before.channel.id:
-                queue_embed = discord.Embed(color=0x4E5058, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
+                queue_embed = discord.Embed(color=0x5865F2, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
 
                 if self.matches[after.channel.id]["state"] == "pre-search":
                     queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(content="", embed=queue_embed)
@@ -522,7 +541,7 @@ class Matchmaking(commands.Cog):
                        
                         message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[before.channel.id]["message"])
                         
-                        queue_embed = discord.Embed(color=0x4E5058, description="")
+                        queue_embed = discord.Embed(color=0x5865F2, description="")
                         queue_embed.title = f'In queue: {len(self.matches[before.channel.id]["users"])}/{self.matches[before.channel.id]["max"]}'
                         queue_embed.set_footer(text="The search channel will be locked when it reaches max size.")
                         
@@ -563,14 +582,26 @@ class Matchmaking(commands.Cog):
 
                         for group_leader, group_members in match["groups"].items():
                             if interaction.user.id in group_members:
-                                await interaction.response.send_message(f"{interaction.user.name} is already in a party.")
+                                error_embed = discord.Embed(title="Party", description=f"<@{interaction.user.id}>, you are already in a party!", color=0xDA373C)
+                                error_embed.set_footer(text="You can leave your party by using /party leave")
+
+                                await interaction.response.send_message(embed=error_embed)
                                 return
 
                             if len(match["groups"][leader]) - 1 < self.matchmaking.get_max_party_size(leader_user[0].voice.channel.id, match["max"], match["users"], match["groups"]):
+                                if interaction.user.id not in self.matchmaking.matches[leader_user[0].voice.channel.id]["users"]:
+                                    error_embed = discord.Embed(title="Party", description=f"Could not join, you are not in the queue.", color=0xDA373C)
+                                    error_embed.set_footer(text="Rejoin the voice channel and try again.")
+
+                                    await interaction.response.send_message(embed=error_embed)
+                                    return
+                                 
                                 self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader].append(interaction.user.id)
                                 requests_to_delete.append(leader)
                                 
                                 success_embed = discord.Embed(title="Party", description=f"<@{interaction.user.id}> joined <@{leader_user[0].id}> party.", color=0x248046)
+                                success_embed.set_footer(text="You can leave the party by using /party leave.")
+
                                 await interaction.response.send_message(embed=success_embed)
                             else:
                                 requests_to_delete.append(leader)
@@ -592,7 +623,7 @@ class Matchmaking(commands.Cog):
             if ctx.author.voice and ctx.author.voice.channel != None:
                 if ctx.author.voice.channel.id in self.matches.keys():
                     content = ""
-                    
+                   
                     for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
                         if ctx.author.id in group_members:
                             index = 1
@@ -602,8 +633,9 @@ class Matchmaking(commands.Cog):
                                     index += 1
                         
                     if content != "":
-                        status_embed = discord.Embed(title="Party", description=content, color=0x4E5058)
-                        status_embed.set_footer(text=f"Max users amount in party: {index - 1}/{self.get_max_party_size(ctx.author.voice.channel.id, self.matches[ctx.author.voice.channel.id]["max"], self.matches[ctx.author.voice.channel.id]["users"], self.matches[ctx.author.voice.channel.id]["groups"])}.")
+                        status_embed = discord.Embed(title="Party", description=content, color=0x5865F2)
+                        status_embed.set_footer(text="Party members are guaranteed to play with each other in a team.")
+
                         await ctx.send(embed=status_embed)
                     else:
                         error_embed = discord.Embed(title="Party", description="You are not in a party.", color=0xDA373C)
@@ -615,29 +647,64 @@ class Matchmaking(commands.Cog):
                 if member.voice and member.voice.channel.id == ctx.author.voice.channel.id:
                     if ctx.author.id != member.id:
                         if ctx.author.voice.channel.id in self.matches.keys():
-                            member_already_in_group = False
+                            for request_leader, request_user in self.awaiting_accept.items():
+                                if request_user == member.id:
+                                    error_embed = discord.Embed(title="Party", description=f"<@{member.id}> already has an awaiting request.", color=0xDA373C)
+                                    error_embed.set_footer(text="If you don't want to accept the request, wait until it expires.")
 
+                                    await ctx.send(embed=error_embed)
+                                    return
+
+                            member_already_in_group = False                            
                             for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
                                 if member.id in group_members:
                                     member_already_in_group = True
                             
                             if member_already_in_group != True:
+                                for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
+                                    if ctx.author.id in group_members and ctx.author.id != group_leader:
+                                        error_embed = discord.Embed(title="Party", description="You are not the leader of your party.", color=0xDA373C)
+                                        error_embed.set_footer(text="You can leave your party by using /party leave.")
+
+                                        await ctx.send(embed=error_embed)
+                                        return
+
                                 if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["groups"]:
                                     self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id] = [ctx.author.id]
                                 
-                                self.awaiting_accept[ctx.author.id] = member.id
-                                asyncio.create_task(self.delete_request(ctx.author.id))
+                                if len(self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id]) - 1 < self.get_max_party_size(ctx.author.voice.channel.id, self.matches[ctx.author.voice.channel.id]["max"], self.matches[ctx.author.voice.channel.id]["users"], self.matches[ctx.author.voice.channel.id]["groups"]):
+                               
+                                    if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["users"]:
+                                        error_embed = discord.Embed(title="Party", description="You are not in the queue.", color=0xDA373C)
+                                        error_embed.set_footer(text="Rejoin the voice channel and try again.")
 
-                                group_accept_view = self.GroupAcceptView(self)
-                                
-                                invite_embed = discord.Embed(title="Party", description=f"<@{member.id}> you have been invited to <@{ctx.author.id}> party!", color=0x248046)
-                                invite_embed.set_footer(text="Click on button to accept, you have 15 seconds!")
+                                        await ctx.send(embed=error_embed)
+                                        return
 
-                                await ctx.send(embed=invite_embed, view=group_accept_view)
+                                    self.awaiting_accept[ctx.author.id] = member.id
+                                    asyncio.create_task(self.delete_request(ctx.author.id))
+
+                                    group_accept_view = self.GroupAcceptView(self)
+                                    
+                                    invite_embed = discord.Embed(title="Party", description=f"<@{member.id}> you have been invited to <@{ctx.author.id}> party!", color=0x248046)
+                                    invite_embed.set_footer(text="Click on button to accept, you have 15 seconds!")
+
+                                    await ctx.send(embed=invite_embed, view=group_accept_view)
+                                else:
+                                    error_embed = discord.Embed(title="Party", description=f"<@{ctx.author.id}> your party has reached max size!", color=0xDA373C)
+                                    error_embed.set_footer(text="You can kick someone from your party by using /party kick @user.")
+
+                                    await ctx.send(embed=error_embed)
                             else:
-                                await ctx.send(content=f"{member.name} is already in a party!")
+                                error_embed = discord.Embed(title="Party", description=f"<@{member.id}> is already in a party.", color=0xDA373C)
+                                error_embed.set_footer(text="You can leave your party by using /party leave.")
+
+                                await ctx.send(embed=error_embed)
                 else:
-                    await ctx.send("You need to be in the same voice channel!")
+                    error_embed = discord.Embed(title="Party", description="You need to be in the same voice channel.", color=0xDA373C)
+                    error_embed.set_footer(text="Join the same voice channel and try again.")
+
+                    await ctx.send(embed=error_embed)
 
     @party_group.command(name="remove", aliases=["kick"], description="Removes user from your party.")
     async def remove(self, ctx, member: discord.Member):
@@ -661,7 +728,6 @@ class Matchmaking(commands.Cog):
                                 error_embed.set_footer(text="You can invite users by using /party @user")
 
                                 await ctx.send(embed=error_embed)
-
                                 return
 
                     error_embed = discord.Embed(title="Party", description=f"You are not in a party or are not the leader!", color=0xDA373C)
@@ -674,18 +740,18 @@ class Matchmaking(commands.Cog):
         if ctx.author.voice and ctx.author.voice.channel != None:
             if ctx.author.voice.channel.id in self.matches.keys():
                 for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
-                    if group_member in group_members:
+                    if ctx.author.id in group_members:
                         self.matches[ctx.author.voice.channel.id]["groups"][group_leader].remove(ctx.author.id)
 
-                        if group_member == group_leader:
+                        if ctx.author.id == group_leader:
+                            self.matches[ctx.author.voice.channel.id]["groups"].pop(group_leader)
+                        elif len(self.matches[ctx.author.voice.channel.id]["groups"][group_leader]) == 1:
                             self.matches[ctx.author.voice.channel.id]["groups"].pop(group_leader)
 
-                        success_embed = discord.Embed(title="Party", description="You successfully left your party.", color=0x248046)
+                        success_embed = discord.Embed(title="Party", description="You successfully left the party.", color=0x248046)
                         success_embed.set_footer(text="You can create a party by using /party @user.")
 
-                        await ctx.send(embed=success_embed)
-                        
-                        return
+                        await ctx.send(embed=success_embed) 
 
                 error_embed = discord.Embed(title="Party", description="You are not in a party.", color=0xDA373C)
                 error_embed.set_footer(text="To create a party, invite another user")

@@ -16,16 +16,26 @@ class Top(commands.Cog):
                     cursor.execute("""SELECT name, points, matchs, wins FROM Players ORDER BY points DESC LIMIT 10""")
                     leaderboard = cursor.fetchall()
                     
-                    top_embed = discord.Embed(color=0x808080, description="", title="TOP 10 PLAYERS IN CS:R")
+                    top_embed = discord.Embed(color=0x5865F2, description="", title="TOP 10 PLAYERS IN CS:R")
 
                     for rank, (name, points, matchs, wins) in enumerate(leaderboard, start=1):
-                        top_embed.description += f"{rank}. *{name}* - ELO: {points} Matches: {matchs} Wins {wins}\n"
+                        #top_embed.description += f"{rank}. *{name}* - ELO: {points} Matches: {matchs} Wins {wins}\n"
+
+                        try:
+                            winrate = (wins // matchs) * 100
+                        except Exception:
+                            winrate = 0
+
+                        top_embed.add_field(name=f"#{rank} *{name}* - ELO: {points}, Winrate: {winrate}%", value="", inline=False)
 
                     await ctx.send(embed=top_embed)
             except Exception as err:
                 logging.error(f"Error occured: {err}")
+                
+                error_embed = discord.Embed(title="Error", description="An error occured while retrieving users from database.", color=0xDA373C)
+                error_embed.set_footer(text="Please wait until you use this command again.")
 
-                await ctx.send("An error occured while retrieving users from database.")
+                await ctx.send(embed=error_embed)
 
 async def setup(bot):
     await bot.add_cog(Top(bot))

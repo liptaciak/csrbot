@@ -18,13 +18,13 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 @bot.event
 async def on_ready():
-    print(f"Logged in as: {bot.user.name} ({bot.user.id}).")
+    print(f"\nLogged in as: {bot.user.name} ({bot.user.id}).")
     
     await bot.tree.sync()
 
     try:
         bot.steamapi = ISteamUser(steam_api_key=os.getenv("STEAM_API_KEY"))
-        logging.info("Successfully connected to SteamAPI.")
+        print("\nSuccessfully connected to SteamAPI.")
     except Exception as err:
         logging.error(f"There was an error connecting to SteamAPI: {err}")
 
@@ -37,7 +37,7 @@ async def on_ready():
             user = os.getenv("DB_USER")
         )
 
-        logging.info("Connected to database.")
+        print("Connected to MySQL database.\n")
     except MySQLError as err:
         logging.error(f"Error while connecting to database: {err}")
 
@@ -54,12 +54,13 @@ cogs = [
     "cogs.top", "cogs.ban", 
     "cogs.rank", "cogs.verify", 
     "cogs.unban", "cogs.cancel_match",
-    "cogs.status", "cogs.clear", "cogs.matchmaking",
+    "cogs.status", "cogs.matchmaking",
 ]
 
 async def setup_bot():
     for cog in cogs:
         await bot.load_extension(cog)
+        print(f"{cog} loaded.")
 
     await bot.start(os.getenv("DISCORD_TOKEN"))
 

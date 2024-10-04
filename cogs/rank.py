@@ -7,6 +7,18 @@ from discord.ext import commands
 class Rank(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+    
+    class LinkView(discord.ui.View):
+        def __init__(self, steamid: str):
+            super().__init__()
+
+            self.steam = discord.ui.Button(label="Steam", url=f"https://steamcommunity.com/profiles/{steamid}")
+            self.steamdb = discord.ui.Button(label="SteamDB", url=f"https://steamdb.info/calculator/{steamid}")
+            self.faceit = discord.ui.Button(label="FaceIT", url=f"https://faceitfinder.com/profile/{steamid}")
+
+            self.add_item(self.steam)
+            self.add_item(self.steamdb)
+            self.add_item(self.faceit)
 
     @commands.hybrid_command(name="rank", description="Get rank of user.")
     async def rank(self, ctx, member: discord.Member = None):
@@ -34,7 +46,15 @@ class Rank(commands.Cog):
                         kd = float(row[4]) / float(row[5]) if float(row[5]) != 0 else 0.0
                         avg = float(row[4]) / float(row[2]) if float(row[2]) != 0 else 0.0
 
-                        rank_embed = discord.Embed(color=0x808080, title=f"{ranks[user_rank][2]} {player.name} stats!", description=f"```py\nELO: {row[0]}\nLevel: {user_rank + 1}\n\nMatches: {row[2]}\nWins: {row[3]}\n\nKDR: {kd}\nAVG: {avg}\n\nSteamID64: {row[1]}```")
+                        rank_embed = discord.Embed(color=0x5865F2, title=f"{ranks[user_rank][2]} {player.name} stats!", description=f"ELO: {row[0]}\nLevel: {user_rank + 1}")
+
+                        rank_embed.add_field(name="Matches", value=f"{row[2]}", inline=True)
+                        rank_embed.add_field(name="Wins", value=f"{row[3]}", inline=True)
+                        rank_embed.add_field(name="KDR", value=f"{kd}", inline=False)
+                        rank_embed.add_field(name="AVG", value=f"{avg}", inline=True)
+                        rank_embed.add_field(name="SteamID", value=f"``{row[1]}``", inline=True)
+
+                        rank_view = self.LinkView(row[1])
                         
                         query = "SELECT FirstDay FROM Awards WHERE steam64 = %s"
                         cursor.execute(query, (row[1]))
@@ -44,13 +64,19 @@ class Rank(commands.Cog):
                             if int(award_row[0]) == 1:
                                 rank_embed += "\n<:FirstDayMedal:1255950280374091898>"
 
-                        await ctx.send(embed=rank_embed)
+                        await ctx.send(embed=rank_embed, view=rank_view)
                     else:
-                        await ctx.send("You or the member you listed is not in the database.")
+                        error_embed = discord.Embed(title="Error", description="You or the member you listed is not in the database.", color=0xDA373C)
+                        error_embed.set_footer(text="Make sure you or the user you listed is verified.")
+
+                        await ctx.send(embed=error_embed)
             except Exception as err:
                 logging.error(f"Error occured: {err}")
+                
+                error_embed = discord.Embed(title="Error", description="An unexpected error occured while retrieving user from database.", color=0xDA373C)
+                error_embed.set_footer(text="Please wait until you use this command again.")
 
-                await ctx.send("An unexpected error occured.")
+                await ctx.send(embed=error_embed)
 
 async def setup(bot):
     await bot.add_cog(Rank(bot))
