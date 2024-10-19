@@ -18,7 +18,7 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 4,
+                    "max": 10,
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
@@ -377,8 +377,8 @@ class Matchmaking(commands.Cog):
 
             ip = str(os.getenv("SERVER_IP")) + ":" + str(server_port)
 
-            query = "INSERT INTO whitelist (ip, players) VALUES (%s, %s)"
-            cursor.execute(query, (ip, json.dumps(players)))
+            query = "UPDATE whitelist SET players = %s WHERE ip = %s"
+            cursor.execute(query, (json.dumps(players), ip))
             self.bot.database.commit()
 
             embed_ready = discord.Embed(title=f'**Preparing match team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is being prepared... :hourglass:", color=0x4E5058)
@@ -639,6 +639,7 @@ class Matchmaking(commands.Cog):
         if member == None:
             if ctx.author.voice and ctx.author.voice.channel != None:
                 if ctx.author.voice.channel.id in self.matches.keys():
+                    print(self.matches[ctx.author.voice.channel.id]["groups"])
                     content = ""
                    
                     for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():
@@ -776,6 +777,28 @@ class Matchmaking(commands.Cog):
                 error_embed = discord.Embed(title="Party", description="You are not in a party.", color=0xDA373C)
                 error_embed.set_footer(text="To create a party, invite another user")
 
+                await ctx.send(embed=error_embed)
+
+    @commands.hybrid_command(name="reset", description="Reset matchmaking state.")
+    @commands.has_permissions(administrator=True)
+    async def reset(self, ctx, id):
+        if ctx.guild and ctx.guild.id == int(os.getenv("GUILD_ID")) and ctx.author.guild_permissions.administrator:
+            if id and int(id) in self.matches:
+                self.matches[int(id)] = {
+                    "max": 10,
+                    "map": "de_cache",
+                    "users": {},
+                    "groups": {},
+                    "state": "pre-search",
+                    "message": None,
+                    "id": None,
+                    "timestamp": 0,
+                }
+                
+                success_embed = discord.Embed(title="Success", description="Successfully reseted queue state.", color=0x248046)
+                await ctx.send(embed=success_embed)
+            else:
+                error_embed = discord.Embed(title="Error", description="Could not find queue. Is channel id correct?", color=0xDA373C)
                 await ctx.send(embed=error_embed)
 
 async def setup(bot):
