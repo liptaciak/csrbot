@@ -12,12 +12,16 @@ class Unban(commands.Cog):
     @commands.has_permissions(administrator=True)
     async def unban(self, ctx, id):
         if not ctx.guild:
-            await ctx.send("This command can only be used in a server.")
+            error_embed = discord.Embed(title="Error", description="This command can only be used in a server.", color=0xDA373C)
+            await ctx.send(embed=error_embed)
+
             return
         
         guild_id = os.getenv("GUILD_ID")
         if not guild_id:
-            await ctx.send("GUILD_ID environment variable is not set.")
+            error_embed = discord.Embed(title="Error", description="GUILD_ID environment variable is not set.", color=0xDA373C)
+            await ctx.send(error_embed)
+
             return
         
         if ctx.guild.id == int(guild_id) and ctx.author.guild_permissions.administrator:
@@ -32,14 +36,16 @@ class Unban(commands.Cog):
 
                         member = ctx.guild.get_member(int(id))
                         if not member:
-                            await ctx.send("User not found in the server.")
-                            return
+                            error_embed = discord.Embed(title="Error", description="Cannot find user in this server.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
 
-                        logging.info(f"Found member: {member.id} with SteamID64: {steam64}")
+                            return
 
                         role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
                         if not role:
-                            await ctx.send("The role to add was not found.")
+                            error_embed = discord.Embed(title="Error", description="The role to add was not found.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
+
                             return
                         
                         await member.add_roles(role)
@@ -51,16 +57,22 @@ class Unban(commands.Cog):
                             cursor.execute("DELETE FROM Banned WHERE steam64 = %s", (str(steam64),))
                             self.bot.database.commit()
 
-                            await ctx.send("The user was successfully unbanned.")
+                            success_embed = discord.Embed(title="Success", description="The user was successfully unbanned.", color=0x248046)
+                            await ctx.send(embed=success_embed)
                         else:
-                            await ctx.send("This user is not banned.")
+                            error_embed = discord.Embed(title="Error", description="This user is not banned.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
                     else:
-                        await ctx.send("The user is not in the database.")
+                        error_embed = discord.Embed(title="Error", description="The user is not in the database.", color=0xDA373C)
+                        await ctx.send(embed=error_embed)
             except Exception as err:
                 logging.error(f"Error occurred: {err}")
-                await ctx.send(f"An unexpected error occurred: {err}")
+
+                error_embed = discord.Embed(title="Error", description="An unexpected error occured.", color=0xDA373C)
+                await ctx.send(embed=error_embed)
         else:
-            await ctx.send("You do not have permission to use this command or are in the wrong guild.")
+            error_embed = discord.Embed(title="Error", description="You do not have permission to use this command or are in the wrong guild.", color=0xDA373C)
+            await ctx.send(embed=error_embed)
 
 async def setup(bot):
     await bot.add_cog(Unban(bot))

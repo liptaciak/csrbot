@@ -334,12 +334,21 @@ class Matchmaking(commands.Cog):
                         logging.info(f"Match created: {result}")
                 except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
                     logging.error(f"RCON Error occured on port {port}: {err}")
+
+                    #Delete this later
+                    server_port = port
+                    break
+
                     continue
             
                 if result != "Active\n":
                     server_port = port
                     break
                 else:
+                    #Delete this later
+                    server_port = port
+                    break
+
                     logging.info(f"Port {port} is active!")
                     continue
         
@@ -614,6 +623,11 @@ class Matchmaking(commands.Cog):
                                     return
                                  
                                 self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader].append(interaction.user.id)
+
+                                group = self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader]
+                                unique_group = list(set(group))
+                                self.matchmaking.matches[leader_user[0].voice.channel.id]["groups"][leader] = unique_group
+
                                 requests_to_delete.append(leader)
                                 
                                 success_embed = discord.Embed(title="Party", description=f"<@{interaction.user.id}> joined <@{leader_user[0].id}> party.", color=0x248046)
@@ -639,7 +653,6 @@ class Matchmaking(commands.Cog):
         if member == None:
             if ctx.author.voice and ctx.author.voice.channel != None:
                 if ctx.author.voice.channel.id in self.matches.keys():
-                    print(self.matches[ctx.author.voice.channel.id]["groups"])
                     content = ""
                    
                     for group_leader, group_members in self.matches[ctx.author.voice.channel.id]["groups"].items():

@@ -32,36 +32,43 @@ class Ban(commands.Cog):
 
                         member = ctx.guild.get_member(int(userid))
                         if not member:
-                            await ctx.send("Cannot find user in the server.")
-                            return
+                            error_embed = discord.Embed(title="Error", description="Cannot find user in the server.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
 
-                        logging.info(f"Found member: {member.id} with SteamID64: {steam64}")
+                            return
 
                         role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID"))) 
                         if role:
                             await member.remove_roles(role)
                         else:
-                            await ctx.send("The role to remove was not found.")
+                            error_embed = discord.Embed(title="Error", description="The role to remove was not found.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
                             return
 
                         query = "SELECT * FROM Banned WHERE steam64 = %s"
                         cursor.execute(query, (steam64,))
 
                         if cursor.fetchone():
-                            await ctx.send("This user is already banned.")
+                            error_embed = discord.Embed(title="Error", description="This user is already banned.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
                         else:
                             query = "INSERT INTO Banned (steam64) VALUES (%s)"
                             cursor.execute(query, (steam64,))
                             self.bot.database.commit()
-
-                            await ctx.send("The user was successfully banned.")
+                            
+                            success_embed = discord.Embed(title="Success", description="The user was successfully banned.", color=0x248046)
+                            await ctx.send(embed=success_embed)
                     else:
-                        await ctx.send("This person is not in the database.")
+                        error_embed = discord.Embed(title="Error", description="This person is not in the database.", color=0xDA373C)
+                        await ctx.send(embed=error_embed)
             except Exception as err:
                 logging.error(f"Error occurred: {err}")
-                await ctx.send(f"An unexpected error occurred: {err}")
+
+                error_embed = discord.Embed(title="Error", description="An unexpected error occured.", color=0xDA373C)
+                await ctx.send(embed=error_embed)
         else:
-            await ctx.send("You do not have permission to use this command or are in the wrong guild.")
+            error_embed = discord.Embed(title="Error", description="You do not have permission to use this command or are in the wrong guild.", color=0xDA373C)
+            await ctx.send(embed=error_embed)
 
 async def setup(bot):
     await bot.add_cog(Ban(bot))

@@ -20,13 +20,15 @@ class Verify(commands.Cog):
                     cursor.execute(query, (str(steamid64),))
 
                     if cursor.fetchone():
-                        await ctx.send("This user is banned.")
+                        error_embed = discord.Embed(title="Error", description="This user is banned.", color=0xDA373C)
+                        await ctx.send(embed=error_embed)
                     else:
                         query = "SELECT * FROM Players WHERE idDiscord = %s OR steam64 = %s"
                         cursor.execute(query, (str(userid), str(steamid64)))
 
                         if cursor.fetchone():
-                            await ctx.send("This user is already verified.")
+                            error_embed = discord.Embed(title="Error", description="This user is already verified.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
                         else:
                             member = ctx.guild.get_member(int(userid))
                             if member:
@@ -38,18 +40,23 @@ class Verify(commands.Cog):
 
                                     cursor.execute(query, (userid, steamid64, 1000, member.name, 0, 0, 0, 0, 0.0))
                                     self.bot.database.commit()
-
-                                    await ctx.send("This person has been sucessfully verified.")
+                                    
+                                    success_embed = discord.Embed(title="Success", description="This person has been successfully verified.", color=0x248046)
+                                    await ctx.send(embed=success_embed)
                                 else:
-                                    await ctx.send("An unexpected error occured.")
+                                    error_embed = discord.Embed(title="Error", description="An unexpected error occured.", color=0xDA373C)
+                                    await ctx.send(embed=error_embed)
                             else:
-                                await ctx.send("Cannot find member.")
+                                error_embed = discord.Embed(title="Error", description="Cannot find member in this server.", color=0xDA373C)
+                                await ctx.send(embed=error_embed)
             except discord.NotFound:
-                await ctx.send("Cannot find member.")
+                error_embed = discord.Embed(title="Error", description="Cannot find member in this server.", color=0xDA373C)
+                await ctx.send(embed=error_embed)
             except Exception as err:
                 logging.error(f"Error occured: {err}")
-
-                await ctx.send("An unexpected error occured.")
+                
+                error_embed = discord.Embed(title="Error", description="An unexpected error occured.", color=0xDA373C)
+                await ctx.send(embed=error_embed)
 
     @commands.hybrid_command(name="unverify", description="Delete player from database.")
     @commands.has_permissions(administrator=True)
@@ -61,7 +68,8 @@ class Verify(commands.Cog):
                     cursor.execute(query, (str(userid),))
 
                     if not cursor.fetchone():
-                        await ctx.send("This user is not verified.")
+                        error_embed = discord.Embed(title="Error", description="This user is not verified.", color=0xDA373C)
+                        await ctx.send(embed=error_embed)
                     else:
                         member = ctx.guild.get_member(int(userid))
                         if member:
@@ -73,17 +81,23 @@ class Verify(commands.Cog):
                                 
                                 cursor.execute(query, (str(userid),))
                                 self.bot.database.commit()
-
-                                await ctx.send("This person has been sucessfully removed from database.")
+                                
+                                success_embed = discord.Embed(title="Success", description="This person has been successfully removed from the database.", color=0x248046)
+                                await ctx.send(embed=success_embed)
                             else:
-                                await ctx.send("An unexpected error occured.")
+                                error_embed = discord.Embed(title="Error", description="An unexpected error occured.", color=0xDA373C)
+                                await ctx.send(embed=error_embed)
                         else:
-                            await ctx.send("Cannot find member.")
+                            error_embed = discord.Embed(title="Error", description="Cannot find member in this server.", color=0xDA373C)
+                            await ctx.send(embed=error_embed)
             except discord.NotFound:
-                await ctx.send("Cannot find member.")
+                error_embed = discord.Embed(title="Error", description="Cannot find member in this server.", color=0xDA373C)
+                await ctx.send(embed=error_embed)
             except Exception as err:
                 logging.error(f"Error occured: {err}")
-                await ctx.send("An unexpected error occured.")
+
+                error_embed = discord.Embed(title="Error", description="An unexpected error occured.", color=0xDA373C)
+                await ctx.send(embed=error_embed)
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

@@ -19,14 +19,12 @@ class Top(commands.Cog):
                     top_embed = discord.Embed(color=0x5865F2, description="", title="TOP 10 PLAYERS IN CS:R")
 
                     for rank, (name, points, matchs, wins) in enumerate(leaderboard, start=1):
-                        #top_embed.description += f"{rank}. *{name}* - ELO: {points} Matches: {matchs} Wins {wins}\n"
-
                         try:
                             winrate = (wins // matchs) * 100
                         except Exception:
                             winrate = 0
 
-                        top_embed.add_field(name=f"#{rank} *{name}* - ELO: {points}, Winrate: {winrate}%", value="", inline=False)
+                        top_embed.description += f"{rank}. *{name}* - ELO: {points}, Matches: {matchs}, Wins: {wins}\n"
 
                     await ctx.send(embed=top_embed)
             except Exception as err:
