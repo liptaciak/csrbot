@@ -300,7 +300,7 @@ class Matchmaking(commands.Cog):
                     if index not in players:
                         players[index] = {}
 
-                    players[index] = { "steamid": str(row[0]), "team": "CT" }
+                    players[index] = { "steamid": str(row[0]), "team": "C" }
                     match["users"][id]["steamid"] = row[0]
 
                 index += 1
@@ -321,37 +321,29 @@ class Matchmaking(commands.Cog):
                     match["users"][id]["steamid"] = row[0]
                 
                 index += 1
-
-            ports = os.getenv("SERVER_PORTS").split(",");
+            
+            active_servers = []
+            with self.bot.database.cursor() as cursor:
+                cursor.query("""SELECT ip FROM status WHERE active = 1""")
+                active_servers = cursor.fetchall()
+            
             server_port = 0
+            for server in active_servers:
+                data = server.split(":")
 
-            for port in ports:
-                await asyncio.sleep(1.5)
-            
+                await asyncio.sleep(1.5)            
                 try: 
-                    with RCON((os.getenv("SERVER_IP"), int(port)), os.getenv("RCON_PASS")) as rcon:
-                        result = rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
-                        logging.info(f"Match created: {result}")
+                    with RCON((data[0], int(data[1])), os.getenv("RCON_PASS")) as rcon:
+                        rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
+                        
+                        print(f"Match created: {result}")
+
+                        server_port = int(data[1])
+                        break
                 except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
-                    logging.error(f"RCON Error occured on port {port}: {err}")
-
-                    #Delete this later
-                    server_port = port
-                    break
-
+                    logging.error(f"RCON Error occured on {server}: {err}")
                     continue
-            
-                if result != "Active\n":
-                    server_port = port
-                    break
-                else:
-                    #Delete this later
-                    server_port = port
-                    break
-
-                    logging.info(f"Port {port} is active!")
-                    continue
-        
+                   
             if server_port == 0:
                 embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.", color=0xDA373C)
             
