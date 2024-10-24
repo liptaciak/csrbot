@@ -99,15 +99,60 @@ class Verify(commands.Cog):
                 error_embed = discord.Embed(title="Error", description="An unexpected error occured.", color=0xDA373C)
                 await ctx.send(embed=error_embed)
 
+    #@commands.Cog.listener()
+    #async def on_message(self, message: discord.Message):
+    #    if message.channel.name.startswith("ticket-"):
+    #        if message.content.startswith("https://steamcommunity.com/"):
+    #            steamid = self.bot.steamapi.resolve_vanity_url(message.content)["response"]
+    #            if steamid["message"] != "No match":
+    #                await message.channel.send(content=f"{steamid}")
+    #            else:
+    #                await message.channel.send(content="Could not find user.")
+    
     @commands.Cog.listener()
-    async def on_message(self, message: discord.Message):
-        if message.channel.name.startswith("ticket-"):
-            if message.content.startswith("https://steamcommunity.com/"):
-                steamid = self.bot.steamapi.resolve_vanity_url(message.content)["response"]
-                if steamid["message"] != "No match":
-                    await message.channel.send(content=f"{steamid}")
-                else:
-                    await message.channel.send(content="Could not find user.")
+    async def on_member_remove(member: discord.Member):
+        with self.bot.database.cursor() as cursor:
+            query = "SELECT * FROM Players WHERE idDiscord = %s"
+            cursor.execute(query, (str(member.id),))
+
+            if cursor.fetchone():
+                query = "DELETE FROM Players WHERE idDiscord = %s"
+                cursor.execute(query, (str(member.id),))
+
+                self.bot.database.commit()
+
+    @commands.Cog.listener()
+    async def on_member_ban(guild: discord.Guild, user: discord.Member):
+        with self.bot.database.cursor() as cursor:
+            query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
+            cursor.execute(query, (str(user.id),))
+            
+            result = cursor.fetchone()
+            if result:
+                query = "DELETE FROM Players WHERE idDiscord = %s"
+                cursor.execute(query, (str(user.id),))
+
+                self.bot.database.commit()
+
+                query = "SELECT * FROM Banned WHERE steam64 = %s"
+                cursor.execute(query, (str(result[0]),))
+                if not cursor.fetchone():
+                    query = "INSERT INTO Banned (steam64) VALUES (%s)"
+                    cursor.execute(query, (str(result[0]),))
+
+                    self.bot.database.commit()
+
+    @commands.Cog.listener()
+    async def on_user_update(before: discord.Member, after: discord.Member):
+        if before.name != after.name:
+            with self.bot.database.cursor() as cursor:
+                query = "SELECT name FROM Players WHERE idDiscord = %s"
+                cursor.execute(query, (str(after.id),))
+
+                if cursor.fetchone():
+                    query = "UPDATE Players SET name = %s WHERE idDiscord = %s"
+                    cursor.execute(query, (after.name, str(after.id)))
+                    self.bot.database.commit()
 
 async def setup(bot):
     await bot.add_cog(Verify(bot))

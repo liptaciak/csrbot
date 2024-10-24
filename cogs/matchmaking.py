@@ -18,7 +18,7 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 10,
+                    "max": 2,
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
@@ -39,58 +39,20 @@ class Matchmaking(commands.Cog):
             self.add_item(self.button)
 
     class AcceptView(discord.ui.View):
-        def __init__(self, matchmaking):
-            super().__init__(timeout=30)
+        def __init__(self, matchmaking, timeout=30):
+            super().__init__(timeout=None)
+            self.timeout_duration = timeout
+            self.is_timed_out = False
+
             self.matchmaking = matchmaking
+        
+        async def start_timer(self):
+            await asyncio.sleep(self.timeout_duration)
+            self.is_timed_out = True
 
-        @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
-        async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
-            for match_id, match_data in self.matchmaking.matches.items():
-                if interaction.message and match_data["message"] == interaction.message.id and match_data["state"] == "accept":
-                    match = match_data
-
-            if match and interaction.user.id in match["users"]:
-                message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
-
-                if match["users"][interaction.user.id]["accepted"] == False:
-                    match["users"][interaction.user.id]["accepted"] = True
-                    
-                    await interaction.response.defer()
-                
-                accepted = sum(1 for user in match["users"].values() if user["accepted"])
-
-                match["timestamp"] = int(time() + 30)
-                accepted_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Ending: <t:{match["timestamp"]}:R>", description=f"Users accepted: {accepted}/{match["max"]}\n")
-                accepted_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
-
-                await message.edit(embed=accepted_embed)
-
-                if accepted == match["max"]:
-                    match["timestamp"] = int(time() + 20)
-
-                    map_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match["timestamp"]}:R>", description="")
-                    map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
-                    
-                    map_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:cache:1289642476738707568> Cache", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value="Votes: 0", inline=True)
-
-                    map_view = self.matchmaking.MapView(self.matchmaking)
-
-                    await message.edit(content=None, embed=map_embed, view=map_view)
-
-                    match["state"] = "map"
-
-        async def on_timeout(self):
+            await self.on_timeout_custom()
+            
+        async def on_timeout_custom(self):
             match = None 
 
             for match_id, match_data in self.matchmaking.matches.items():
@@ -146,10 +108,94 @@ class Matchmaking(commands.Cog):
                     queue_msg = await channel.send(content=f"{not_accepted_ping}failed to accept the match.", embed=queue_embed) 
                     match["message"] = queue_msg.id
 
+
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            if self.is_timed_out:
+                return False
+            return True
+
+        @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
+        async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
+            for match_id, match_data in self.matchmaking.matches.items():
+                if interaction.message and match_data["message"] == interaction.message.id and match_data["state"] == "accept":
+                    match = match_data
+
+            if match and interaction.user.id in match["users"]:
+                message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+
+                if match["users"][interaction.user.id]["accepted"] == False:
+                    match["users"][interaction.user.id]["accepted"] = True
+                    
+                    await interaction.response.defer()
+                
+                accepted = sum(1 for user in match["users"].values() if user["accepted"])
+
+                accepted_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Ending: <t:{match["timestamp"]}:R>", description=f"Users accepted: {accepted}/{match["max"]}\n")
+                accepted_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
+
+                await message.edit(embed=accepted_embed)
+
+                if accepted == match["max"]:
+                    match["timestamp"] = int(time() + 20)
+
+                    map_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match["timestamp"]}:R>", description="")
+                    map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
+                    
+                    map_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:cache:1289642476738707568> Cache", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value="Votes: 0", inline=True)
+
+                    map_view = self.matchmaking.MapView(self.matchmaking, timeout=20)
+                    asyncio.create_task(map_view.start_timer())
+
+                    await message.edit(content=None, embed=map_embed, view=map_view)
+                    match["state"] = "map"
+
     class MapView(discord.ui.View):
-        def __init__(self, matchmaking):
-            super().__init__(timeout=20)
+        def __init__(self, matchmaking, timeout=20):
+            super().__init__(timeout=None)
+            self.timeout_duration = timeout
+            self.is_timed_out = False
+
             self.matchmaking = matchmaking
+        
+        async def start_timer(self):
+            await asyncio.sleep(self.timeout_duration)
+            self.is_timed_out = True
+            await self.on_timeout_custom()
+        
+        async def on_timeout_custom(self):
+            match = None
+
+            for match_id, match_data in self.matchmaking.matches.items():
+                if match_data["state"] == "map":
+                    match = match_data
+
+            if match:
+                votes = [user["vote"] for user in match["users"].values()] 
+                vote_count = Counter(votes)
+                max_votes = max(vote_count.values())
+
+                maps = [map for map, count in vote_count.items() if count == max_votes]
+
+                if maps[0] != None:
+                    match["map"] = maps[0]
+                
+                await self.matchmaking.prepare_server(match)
+
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            if self.is_timed_out:
+                return False
+            return True
 
         @discord.ui.select(
             placeholder="Choose a map...",
@@ -180,7 +226,6 @@ class Matchmaking(commands.Cog):
 
                 await interaction.response.defer()
                 
-                match["timestamp"] = int(time() + 20)
                 maps_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match["timestamp"]}:R>", description="") 
                 maps_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
                 
@@ -225,28 +270,7 @@ class Matchmaking(commands.Cog):
                     
                     await self.matchmaking.prepare_server(match)
 
-        async def on_timeout(self):
-            match = None
-
-            for match_id, match_data in self.matchmaking.matches.items():
-                if match_data["state"] == "map":
-                    match = match_data
-
-            if match:
-                votes = [user["vote"] for user in match["users"].values()] 
-                vote_count = Counter(votes)
-                max_votes = max(vote_count.values())
-
-                maps = [map for map, count in vote_count.items() if count == max_votes]
-
-                if maps[0] != None:
-                    match["map"] = maps[0]
-                
-                await self.matchmaking.prepare_server(match)
-
     async def prepare_server(self, match):
-        match["state"] = "preparing"
-
         with self.bot.database.cursor() as cursor:
             team_ct = []
             team_t = []
@@ -324,24 +348,28 @@ class Matchmaking(commands.Cog):
             
             active_servers = []
             with self.bot.database.cursor() as cursor:
-                cursor.query("""SELECT ip FROM status WHERE active = 1""")
+                cursor.execute("""SELECT ip FROM status WHERE active = 0""")
                 active_servers = cursor.fetchall()
             
             server_port = 0
-            for server in active_servers:
+            for (server,) in active_servers:
                 data = server.split(":")
 
-                await asyncio.sleep(1.5)            
+                await asyncio.sleep(1.5)
                 try: 
                     with RCON((data[0], int(data[1])), os.getenv("RCON_PASS")) as rcon:
-                        rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
-                        
-                        print(f"Match created: {result}")
+                        try:
+                            rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
+                            
+                            print(f"Match created: {result}")
 
-                        server_port = int(data[1])
-                        break
-                except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
-                    logging.error(f"RCON Error occured on {server}: {err}")
+                            server_port = int(data[1])
+                            break
+                        except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
+                            logging.error(f"RCON Error occured on {server}: {err}")
+                            continue
+                except Exception as err:
+                    logging.error(f"Unexpected error on {server}: {err}")
                     continue
                    
             if server_port == 0:
@@ -363,9 +391,8 @@ class Matchmaking(commands.Cog):
 
                 await channel.set_permissions(role, connect=False) 
 
-                max_players = match["max"]
                 self.matches[match["id"]] = {
-                    "max": max_players,
+                    "max": match["max"],
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
@@ -526,8 +553,9 @@ class Matchmaking(commands.Cog):
                             accept_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Expires <t:{self.matches[after.channel.id]["timestamp"]}:R>", description=f"Users accepted: 0/{self.matches[after.channel.id]["max"]}\n")
                             accept_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
 
-                            accept_view = self.AcceptView(self) 
-                            
+                            accept_view = self.AcceptView(self, timeout=30)  
+                            asyncio.create_task(accept_view.start_timer())
+
                             accept_content = ""
                             for user in self.matches[after.channel.id]["users"]:
                                 accept_content += f"<@{user}> "
@@ -587,6 +615,10 @@ class Matchmaking(commands.Cog):
             self.matchmaking = matchmaking
             self.message = None
         
+        #Overwrite timeout
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            return True
+
         @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
         async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
             requests_to_delete = []
@@ -790,7 +822,7 @@ class Matchmaking(commands.Cog):
         if ctx.guild and ctx.guild.id == int(os.getenv("GUILD_ID")) and ctx.author.guild_permissions.administrator:
             if id and int(id) in self.matches:
                 self.matches[int(id)] = {
-                    "max": 10,
+                    "max": self.matches[int(id)]["max"],
                     "map": "de_cache",
                     "users": {},
                     "groups": {},
