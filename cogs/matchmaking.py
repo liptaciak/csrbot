@@ -18,11 +18,23 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 2,
+                    "max": 10,
+                    "region": "eu",
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
                     "state": "pre-search", 
+                    "message": None,
+                    "id": None,
+                    "timestamp": 0,
+                },
+                1294055233609011355: {
+                    "max": 10,
+                    "region": "na",
+                    "map": "de_cache",
+                    "users": {},
+                    "groups": {},
+                    "state": "pre-search",
                     "message": None,
                     "id": None,
                     "timestamp": 0,
@@ -348,10 +360,13 @@ class Matchmaking(commands.Cog):
             
             active_servers = []
             with self.bot.database.cursor() as cursor:
-                cursor.execute("""SELECT ip FROM status WHERE active = 0""")
+                query = "SELECT ip FROM status WHERE active = 0 AND region = %s"
+                cursor.execute(query, (match["region"],))
+
                 active_servers = cursor.fetchall()
             
             server_port = 0
+            server_ip = ""
             for (server,) in active_servers:
                 data = server.split(":")
 
@@ -364,6 +379,7 @@ class Matchmaking(commands.Cog):
                             print(f"Match created: {result}")
 
                             server_port = int(data[1])
+                            server_ip = server
                             break
                         except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
                             logging.error(f"RCON Error occured on {server}: {err}")
@@ -393,6 +409,7 @@ class Matchmaking(commands.Cog):
 
                 self.matches[match["id"]] = {
                     "max": match["max"],
+                    "region": match["region"],
                     "map": "de_cache",
                     "users": {}, 
                     "groups": {},
@@ -403,10 +420,8 @@ class Matchmaking(commands.Cog):
             
                 return
 
-            ip = str(os.getenv("SERVER_IP")) + ":" + str(server_port)
-
             query = "UPDATE whitelist SET players = %s WHERE ip = %s"
-            cursor.execute(query, (json.dumps(players), ip))
+            cursor.execute(query, (json.dumps(players), server_ip))
             self.bot.database.commit()
 
             embed_ready = discord.Embed(title=f'**Preparing match team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is being prepared... :hourglass:", color=0x4E5058)
@@ -414,7 +429,10 @@ class Matchmaking(commands.Cog):
             embed_ready.add_field(name="**IP**", value=f'``Preparing server...``', inline=True)
 
             embed_ready.add_field(name="**Map**", value=f'``{match["map"]}``', inline=True)
-            embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
+            if match["region"] == "eu":
+                embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
+            else:
+                embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, Arizona", inline=True)
             
             ct_users = ""
             t_users = ""
@@ -445,7 +463,7 @@ class Matchmaking(commands.Cog):
 
         embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is Ready! GLHF!", color = 0x4E5058)
         
-        embed_ready.add_field(name="**IP**", value=f'``{str(os.getenv("SERVER_IP"))}:{str(server_port)}``', inline=True)
+        embed_ready.add_field(name="**IP**", value=f'``{server_ip}``', inline=True)
 
         embed_ready.add_field(name="**Map**", value=f'``{match["map"]}``', inline=True)
         embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
@@ -477,7 +495,8 @@ class Matchmaking(commands.Cog):
             
             await user[0].move_to(channel=None)
         
-        connect_view = self.ConnectView(f"https://csrestored.xyz/connect.html?ip={str(os.getenv("SERVER_IP"))}&port={str(server_port)}")
+        server_data = server_ip.split(":")
+        connect_view = self.ConnectView(f"https://csrestored.xyz/connect.html?ip={server_data[0]}&port={server_data[1]}")
 
         message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"])  
         
@@ -495,9 +514,9 @@ class Matchmaking(commands.Cog):
 
         asyncio.create_task(self.revert_permissions(channel, role))
 
-        max_players = match["max"]
         self.matches[match["id"]] = {
-            "max": max_players,
+            "max": match["max"],
+            "region": match["region"],
             "map": "de_cache",
             "users": {}, 
             "groups": {},
@@ -615,10 +634,6 @@ class Matchmaking(commands.Cog):
             self.matchmaking = matchmaking
             self.message = None
         
-        #Overwrite timeout
-        async def interaction_check(self, interaction: discord.Interaction) -> bool:
-            return True
-
         @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
         async def accept_callback(self, interaction: discord.Interaction, button: discord.ui.Button):
             requests_to_delete = []
@@ -823,6 +838,7 @@ class Matchmaking(commands.Cog):
             if id and int(id) in self.matches:
                 self.matches[int(id)] = {
                     "max": self.matches[int(id)]["max"],
+                    "region": self.matches[int(id)]["region"],
                     "map": "de_cache",
                     "users": {},
                     "groups": {},

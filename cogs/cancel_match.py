@@ -13,17 +13,18 @@ class CancelMatch(commands.Cog):
 
     @commands.hybrid_command(name="cancel", description="Cancel match.")
     @commands.has_permissions(administrator=True)
-    async def cancel(self, ctx, server_port):
+    async def cancel(self, ctx, server):
         if ctx.guild and ctx.guild.id == int(os.getenv("GUILD_ID")) and ctx.author.guild_permissions.administrator:
             error_embed = discord.Embed(color=0xDA373C, title="Error", description="An error occured while cancelling the match.")
-            error_embed.set_footer(text="Check if the port you provided is correct.")
-
+            error_embed.set_footer(text="Check if the IP you provided is correct.")
+            
+            server_data = server.split(":")
             try:
                 await asyncio.sleep(1.5)
-                with RCON((os.getenv("SERVER_IP"), int(server_port)), os.getenv("RCON_PASS")) as rcon:
+                with RCON((server_data[0], int(server_data[1])), os.getenv("RCON_PASS")) as rcon:
                     rcon("sm_cancel_match")
 
-                cancel_embed = discord.Embed(color=0x248046, title="Success", description=f"Match #{server_port} has been successfully cancelled. Have a good day.")
+                cancel_embed = discord.Embed(color=0x248046, title="Success", description=f"Match {server} has been successfully cancelled. Have a good day.")
                 cancel_embed.set_footer(text="Players will not lose or gain any ELO.")
 
                 await ctx.send(embed=cancel_embed)
