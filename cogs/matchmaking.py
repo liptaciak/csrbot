@@ -377,7 +377,7 @@ class Matchmaking(commands.Cog):
                             rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
                             
                             print(f"Match created: {result}")
-
+                            
                             server_port = int(data[1])
                             server_ip = server
                             break
@@ -422,6 +422,10 @@ class Matchmaking(commands.Cog):
 
             query = "UPDATE whitelist SET players = %s WHERE ip = %s"
             cursor.execute(query, (json.dumps(players), server_ip))
+
+            query = "UPDATE status SET active = 1 WHERE ip = %s"
+            cursor.execute(query, (server_ip,))
+
             self.bot.database.commit()
 
             embed_ready = discord.Embed(title=f'**Preparing match team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is being prepared... :hourglass:", color=0x4E5058)

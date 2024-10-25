@@ -21,12 +21,12 @@ class Status(commands.Cog):
             players_max = 0
 
             with self.bot.database.cursor() as cursor:
-                cursor.execute("""SELECT * FROM status""")
+                cursor.execute("""SELECT ip, active FROM status""")
                 server_list = cursor.fetchall()
-
+                
                 for (ip, active) in server_list:
                     data = ip.split(":")
-
+                    
                     if active == 1:
                         try:
                             source = Source(host=data[0], port=int(data[1]))
