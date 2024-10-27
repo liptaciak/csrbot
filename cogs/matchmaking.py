@@ -11,6 +11,7 @@ import discord
 from discord.ext import commands
 
 from valve.rcon import RCON, RCONError
+from opengsq.protocols import Source
 
 class Matchmaking(commands.Cog):
     def __init__(self, bot):
@@ -28,17 +29,6 @@ class Matchmaking(commands.Cog):
                     "id": None,
                     "timestamp": 0,
                 },
-                1294055233609011355: {
-                    "max": 10,
-                    "region": "na",
-                    "map": "de_cache",
-                    "users": {},
-                    "groups": {},
-                    "state": "pre-search",
-                    "message": None,
-                    "id": None,
-                    "timestamp": 0,
-                }
         }
 
         self.awaiting_accept = {}
@@ -156,14 +146,18 @@ class Matchmaking(commands.Cog):
                     map_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:cache:1289642476738707568> Cache", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
+                    #map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300066138499190794> Dust 2", value="Votes: 0", inline=True)
+                    #map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
+                    #map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300066138499190794> Nuke", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
+                    #map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300066138499190794> Train", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value="Votes: 0", inline=True)
 
                     map_view = self.matchmaking.MapView(self.matchmaking, timeout=20)
@@ -215,14 +209,18 @@ class Matchmaking(commands.Cog):
                 discord.SelectOption(label="Aztec", value="de_aztec", emoji=discord.PartialEmoji(name="aztec", id=1291798839430217728)),
                 discord.SelectOption(label="Cache", value="de_cache", emoji=discord.PartialEmoji(name="de_cache", id=1245790208142737548)),
                 discord.SelectOption(label="Cobblestone", value="de_cbble", emoji=discord.PartialEmoji(name="de_cobblestone", id=1245790227973279775)),
-                discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
-                discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
+                #discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
+                discord.SelectOption(label="Dust 2", value="de_dust2_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                #discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
+                discord.SelectOption(label="Inferno", value="de_inferno_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
                 discord.SelectOption(label="Mirage", value="de_mirage", emoji=discord.PartialEmoji(name="de_mirage", id=1245790217739436032)),
-                discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
+                #discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
+                discord.SelectOption(label="Nuke", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
                 discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
                 discord.SelectOption(label="Overpass", value="de_overpass", emoji=discord.PartialEmoji(name="de_overpass", id=1245790237532356689)),
                 discord.SelectOption(label="Seaside", value="de_seaside", emoji=discord.PartialEmoji(name="de_seaside", id=1281026580554059868)),
-                discord.SelectOption(label="Train", value="de_train", emoji=discord.PartialEmoji(name="de_train", id=1245790222730526823)),
+                #discord.SelectOption(label="Train", value="de_train", emoji=discord.PartialEmoji(name="de_train", id=1245790222730526823)),
+                discord.SelectOption(label="Train", value="de_train_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
                 discord.SelectOption(label="Vertigo", value="de_vertigo", emoji=discord.PartialEmoji(name="de_vertigo", id=1259159498858168430))
             ]
         )
@@ -243,11 +241,11 @@ class Matchmaking(commands.Cog):
                 
                 vote_counts = {
                     "de_aztec": 0, "de_cache": 0, 
-                    "de_cbble": 0, "de_dust2": 0, 
-                    "de_inferno": 0, "de_mirage": 0, 
-                    "de_nuke": 0, "de_nuke_old": 0,
+                    "de_cbble": 0, "de_dust2_night": 0, 
+                    "de_inferno_night": 0, "de_mirage": 0, 
+                    "de_nuke_night": 0, "de_nuke_old": 0,
                     "de_overpass": 0, "de_seaside": 0, 
-                    "de_train": 0, "de_vertigo": 0
+                    "de_train_night": 0, "de_vertigo": 0
                 }
 
                 for user_vote in match["users"].values():
@@ -259,14 +257,18 @@ class Matchmaking(commands.Cog):
                 maps_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value=f'Votes: {vote_counts["de_aztec"]}', inline=True)
                 maps_embed.add_field(name="<:cache:1289642476738707568> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
                 maps_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value=f'Votes: {vote_counts["de_cbble"]}', inline=True)
-                maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
-                maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
+                #maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300066138499190794> Dust 2", value=f'Votes: {vote_counts["de_dust2_night"]}', inline=True)
+                #maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value=f'Votes: {vote_counts["de_inferno_night"]}', inline=True)
                 maps_embed.add_field(name="<:mirage:1289645111315140692> Mirage", value=f'Votes: {vote_counts["de_mirage"]}', inline=True)
-                maps_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
+                #maps_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300066138499190794> Nuke", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
                 maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
                 maps_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value=f'Votes: {vote_counts["de_overpass"]}', inline=True)
                 maps_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value=f'Votes: {vote_counts["de_seaside"]}', inline=True)
-                maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
+                #maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300066138499190794> Train", value=f'Votes: {vote_counts["de_train_night"]}', inline=True)
                 maps_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value=f'Votes: {vote_counts["de_vertigo"]}', inline=True)
 
                 message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
@@ -283,6 +285,14 @@ class Matchmaking(commands.Cog):
                     await self.matchmaking.prepare_server(match)
 
     async def prepare_server(self, match):
+        preparing_embed = discord.Embed(title="Preparing", description="Preparing server... :hourglass:", color=0x3375A8)
+        preparing_embed.set_footer(text="This can take up to 1-2 minutes at most.")
+        
+        channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
+        message = await channel.fetch_message(match["message"]) 
+
+        await message.edit(embed=preparing_embed, view=None)
+         
         with self.bot.database.cursor() as cursor:
             team_ct = []
             team_t = []
@@ -370,24 +380,24 @@ class Matchmaking(commands.Cog):
             for (server,) in active_servers:
                 data = server.split(":")
 
-                await asyncio.sleep(1.5)
-                try: 
-                    with RCON((data[0], int(data[1])), os.getenv("RCON_PASS")) as rcon:
-                        try:
-                            rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')
-                            
-                            print(f"Match created: {result}")
-                            
-                            server_port = int(data[1])
-                            server_ip = server
-                            break
-                        except (RCONError, ConnectionResetError, ConnectionRefusedError) as err:
-                            logging.error(f"RCON Error occured on {server}: {err}")
-                            continue
+                try:
+                    print(f"{data[0]} {data[1]}")
+                    source = Source(host=data[0], port=int(data[1]))
+
+                    server_port = int(data[1])
+                    server_ip = data[0]
+                    break
                 except Exception as err:
                     logging.error(f"Unexpected error on {server}: {err}")
                     continue
-                   
+            
+            with RCON((server_ip, int(server_port)), os.getenv("RCON_PASS")) as rcon:
+                try:
+                    await asyncio.sleep(5)
+                    rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')  
+                except Exception as err:
+                    print(f"Unexpected RCON Error on {server_ip}:{server_port}: {err}")
+                         
             if server_port == 0:
                 embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.", color=0xDA373C)
             
@@ -419,14 +429,17 @@ class Matchmaking(commands.Cog):
                 }
             
                 return
+            
+            ip = f"{server_ip}:{server_port}"
+            
+            with self.bot.database.cursor() as cursor:
+                query = "UPDATE whitelist SET players = %s WHERE ip = %s"
+                cursor.execute(query, (json.dumps(players), ip))
 
-            query = "UPDATE whitelist SET players = %s WHERE ip = %s"
-            cursor.execute(query, (json.dumps(players), server_ip))
+                query = "UPDATE status SET active = 1 WHERE ip = %s"
+                cursor.execute(query, (ip,))
 
-            query = "UPDATE status SET active = 1 WHERE ip = %s"
-            cursor.execute(query, (server_ip,))
-
-            self.bot.database.commit()
+                self.bot.database.commit()
 
             embed_ready = discord.Embed(title=f'**Preparing match team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is being prepared... :hourglass:", color=0x4E5058)
             
@@ -458,7 +471,7 @@ class Matchmaking(commands.Cog):
             embed_ready.add_field(name=f'**team_{match["users"][team_ct[0]]["name"]}**', value=ct_users, inline=True)
             embed_ready.add_field(name=f'**team_{match["users"][team_t[0]]["name"]}**', value=t_users, inline=True)
             
-            embed_ready.set_footer(text="This can take up to 1-2 minutes.")
+            embed_ready.set_footer(text="This can take up to 1-2 minutes at most.")
 
             message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
             await message.edit(embed=embed_ready, view=None)
@@ -467,7 +480,7 @@ class Matchmaking(commands.Cog):
 
         embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is Ready! GLHF!", color = 0x4E5058)
         
-        embed_ready.add_field(name="**IP**", value=f'``{server_ip}``', inline=True)
+        embed_ready.add_field(name="**IP**", value=f'``{ip}``', inline=True)
 
         embed_ready.add_field(name="**Map**", value=f'``{match["map"]}``', inline=True)
         embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
@@ -500,7 +513,7 @@ class Matchmaking(commands.Cog):
             await user[0].move_to(channel=None)
         
         server_data = server_ip.split(":")
-        connect_view = self.ConnectView(f"https://csrestored.xyz/connect.html?ip={server_data[0]}&port={server_data[1]}")
+        connect_view = self.ConnectView(f"https://csrestored.xyz/connect.html?ip={server_ip}&port={server_port}")
 
         message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"])  
         
