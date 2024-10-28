@@ -553,7 +553,10 @@ class Matchmaking(commands.Cog):
             if after.channel:
                 for user in after.channel.members:
                     if user.id != member.id and user.id not in self.matches[after.channel.id]["users"]:
-                        await user.move_to(channel=None)
+                        if len(self.matches[after.channel.id]["users"]) < self.matches[after.channel.id]["max"] - 1:
+                            self.matches[after.channel.id]["users"][user.id] = { "id": user.id, "name": user.name, "team": None, "steamid": None, "accepted": False, "vote": None }
+                        else:
+                            await user.move_to(channel=None)
 
             if before.channel == None or after.channel and after.channel.id != before.channel.id:
                 queue_embed = discord.Embed(color=0x5865F2, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
