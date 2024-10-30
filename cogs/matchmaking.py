@@ -153,9 +153,9 @@ class Matchmaking(commands.Cog):
                     #map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:halloween:1300066138499190794> Mirage", value="Votes: 0", inline=True)
-                    #map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300066138499190794> Nuke", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300066138499190794> Nuke Old", value="Votes: 0", inline=True)
+                    #map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value="Votes: 0", inline=True)
                     #map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
@@ -216,9 +216,9 @@ class Matchmaking(commands.Cog):
                 #discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
                 discord.SelectOption(label="Inferno", value="de_inferno_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
                 discord.SelectOption(label="Mirage", value="de_mirage_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
-                #discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
-                discord.SelectOption(label="Nuke", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
-                discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
+                discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
+                discord.SelectOption(label="Nuke Old", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                #discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
                 discord.SelectOption(label="Overpass", value="de_overpass", emoji=discord.PartialEmoji(name="de_overpass", id=1245790237532356689)),
                 discord.SelectOption(label="Seaside", value="de_seaside", emoji=discord.PartialEmoji(name="de_seaside", id=1281026580554059868)),
                 #discord.SelectOption(label="Train", value="de_train", emoji=discord.PartialEmoji(name="de_train", id=1245790222730526823)),
@@ -245,7 +245,7 @@ class Matchmaking(commands.Cog):
                     "de_aztec": 0, "de_cache": 0, 
                     "de_cbble": 0, "de_dust2_night": 0, 
                     "de_inferno_night": 0, "de_mirage_night": 0, 
-                    "de_nuke_night": 0, "de_nuke_old": 0,
+                    "de_nuke": 0, "de_nuke_night": 0,
                     "de_overpass": 0, "de_seaside": 0, 
                     "de_train_night": 0, "de_vertigo": 0
                 }
@@ -264,9 +264,9 @@ class Matchmaking(commands.Cog):
                 #maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
                 maps_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value=f'Votes: {vote_counts["de_inferno_night"]}', inline=True)
                 maps_embed.add_field(name="<:halloween:1300066138499190794> Mirage", value=f'Votes: {vote_counts["de_mirage_night"]}', inline=True)
-                #maps_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Nuke", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
-                maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
+                maps_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300066138499190794> Nuke Old", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
+                #maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
                 maps_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value=f'Votes: {vote_counts["de_overpass"]}', inline=True)
                 maps_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value=f'Votes: {vote_counts["de_seaside"]}', inline=True)
                 #maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
@@ -369,7 +369,10 @@ class Matchmaking(commands.Cog):
                     match["users"][id]["steamid"] = row[0]
                 
                 index += 1
-            
+        
+            print(match["users"])
+            print(players)
+
             active_servers = []
             with self.bot.database.cursor() as cursor:
                 query = "SELECT ip FROM status WHERE active = 0 AND region = %s"

@@ -39,7 +39,7 @@ class Rank(commands.Cog):
                             (2100, 7, "<:lvl8:1255948834614411324>"), (1800, 6, "<:lvl7:1255948849525293118>"), 
                             (1500, 5, "<:lvl6:1255948866407239752>"), (1200, 4, "<:lvl5:1255948882882596946>"), 
                             (900, 3, "<:lvl4:1255948899408019509>"), (600, 2, "<:lvl3:1255948919561650306>"),  
-                            (300, 1, "<:lvl2:1255948935365791754>"), (0, 0, "<:lvl1:1255948950494773372>"), 
+                            (300, 1, "<:lvl2:1255948935365791754>"), (-696969, 0, "<:lvl1:1255948950494773372>"), 
                         ]
                         
                         user_rank = next(rank for min_elo, rank, _ in ranks if elo >= min_elo)
@@ -51,13 +51,17 @@ class Rank(commands.Cog):
 
                         rank_view = self.LinkView(row[1])
                         
-                        query = "SELECT FirstDay FROM Awards WHERE steam64 = %s"
+                        query = "SELECT FirstDay, Hallowen2024 FROM Awards WHERE steam64 = %s"
                         cursor.execute(query, (row[1]))
 
                         award_row = cursor.fetchone()
                         if award_row:
                             if int(award_row[0]) == 1:
-                                rank_embed += "\n<:FirstDayMedal:1255950280374091898>"
+                                rank_embed.description += "\n<:cache:1289642476738707568>"
+                                if int(award_row[1]) == 1:
+                                    rank_embed.description += " <:halloween:1300066138499190794>"
+                            elif int(award_row[1]) == 1:
+                                rank_embed.description += "\n<:halloween:1300066138499190794>" 
 
                         await ctx.send(embed=rank_embed, view=rank_view)
                     else:
