@@ -214,8 +214,8 @@ class Matchmaking(commands.Cog):
                 #discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
                 discord.SelectOption(label="Dust 2", value="de_dust2_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
                 #discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
-                discord.SelectOption(label="Inferno", value="de_inferno_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
-                discord.SelectOption(label="Mirage", value="de_mirage_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                discord.SelectOption(label="Inferno", value="de_inferno_dawn", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                discord.SelectOption(label="Mirage", value="de_mirage_rainy", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
                 discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
                 discord.SelectOption(label="Nuke Old", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
                 #discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
@@ -244,7 +244,7 @@ class Matchmaking(commands.Cog):
                 vote_counts = {
                     "de_aztec": 0, "de_cache": 0, 
                     "de_cbble": 0, "de_dust2_night": 0, 
-                    "de_inferno_night": 0, "de_mirage_night": 0, 
+                    "de_inferno_dawn": 0, "de_mirage_rainy": 0, 
                     "de_nuke": 0, "de_nuke_night": 0,
                     "de_overpass": 0, "de_seaside": 0, 
                     "de_train_night": 0, "de_vertigo": 0
@@ -262,8 +262,8 @@ class Matchmaking(commands.Cog):
                 #maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
                 maps_embed.add_field(name="<:halloween:1300066138499190794> Dust 2", value=f'Votes: {vote_counts["de_dust2_night"]}', inline=True)
                 #maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value=f'Votes: {vote_counts["de_inferno_night"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Mirage", value=f'Votes: {vote_counts["de_mirage_night"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value=f'Votes: {vote_counts["de_inferno_dawn"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300066138499190794> Mirage", value=f'Votes: {vote_counts["de_mirage_rainy"]}', inline=True)
                 maps_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
                 maps_embed.add_field(name="<:halloween:1300066138499190794> Nuke Old", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
                 #maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
@@ -288,7 +288,7 @@ class Matchmaking(commands.Cog):
 
     async def prepare_server(self, match):
         preparing_embed = discord.Embed(title="Preparing", description="Preparing server... :hourglass:", color=0x3375A8)
-        preparing_embed.set_footer(text="This can take up to 1-2 minutes at most.")
+        preparing_embed.set_footer(text="This can take up to 1-2 minutes at most. Bot will ping your when server is ready.")
         
         channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
         message = await channel.fetch_message(match["message"]) 
@@ -334,7 +334,7 @@ class Matchmaking(commands.Cog):
                                 self.matches[match["id"]]["users"][swap_key], self.matches[match["id"]]["users"][temp_key] = \
                                     self.matches[match["id"]]["users"][temp_key], self.matches[match["id"]]["users"][swap_key]
                                 break
-                       
+             
             index = 0
             for id, user in list(match["users"].items())[:half]:
                 query = "SELECT steam64 FROM Players WHERE idDiscord = %s"
@@ -360,7 +360,7 @@ class Matchmaking(commands.Cog):
                 row = cursor.fetchone()
 
                 team_t.append(id)
-                
+
                 if row:
                     if index not in players:
                         players[index] = {}
@@ -370,9 +370,6 @@ class Matchmaking(commands.Cog):
                 
                 index += 1
         
-            print(match["users"])
-            print(players)
-
             active_servers = []
             with self.bot.database.cursor() as cursor:
                 query = "SELECT ip FROM status WHERE active = 0 AND region = %s"
@@ -386,7 +383,6 @@ class Matchmaking(commands.Cog):
                 data = server.split(":")
 
                 try:
-                    print(f"{data[0]} {data[1]}")
                     source = Source(host=data[0], port=int(data[1]))
 
                     server_port = int(data[1])
@@ -402,7 +398,7 @@ class Matchmaking(commands.Cog):
                     rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')  
                 except Exception as err:
                     pass # Dont delete this
-                         
+            
             if server_port == 0:
                 embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.", color=0xDA373C)
             
