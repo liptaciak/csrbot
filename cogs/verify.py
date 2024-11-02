@@ -25,7 +25,7 @@ class Verify(commands.Cog):
                     else:
                         query = "SELECT * FROM Players WHERE idDiscord = %s OR steam64 = %s"
                         cursor.execute(query, (str(userid), str(steamid64)))
-
+                        
                         if cursor.fetchone():
                             error_embed = discord.Embed(title="Error", description="This user is already verified.", color=0xDA373C)
                             await ctx.send(embed=error_embed)
@@ -33,12 +33,12 @@ class Verify(commands.Cog):
                             member = ctx.guild.get_member(int(userid))
                             if member:
                                 query = """INSERT INTO Players (idDiscord, steam64, points, name, matchs, wins, death, kills) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)"""
-
+                                
                                 role = ctx.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID")))
                                 if role:
                                     await member.add_roles(role)
 
-                                    cursor.execute(query, (userid, steamid64, 1000, member.name, 0, 0, 0, 0, 0.0))
+                                    cursor.execute(query, (userid, steamid64, 1000, member.name, 0, 0, 0, 0))
                                     self.bot.database.commit()
                                     
                                     success_embed = discord.Embed(title="Success", description="This person has been successfully verified.", color=0x248046)

@@ -19,7 +19,7 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 10,
+                    "max": 4,
                     "region": "eu",
                     "map": "de_cache",
                     "users": {}, 
@@ -254,7 +254,7 @@ class Matchmaking(commands.Cog):
                     vote = user_vote.get("vote")
 
                     if vote in vote_counts:
-                        vote_counts[vote] += 1
+                        vote_counts[vote] += 1 
                 
                 maps_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value=f'Votes: {vote_counts["de_aztec"]}', inline=True)
                 maps_embed.add_field(name="<:cache:1289642476738707568> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
@@ -395,6 +395,7 @@ class Matchmaking(commands.Cog):
             with RCON((server_ip, int(server_port)), os.getenv("RCON_PASS")) as rcon:
                 try:
                     await asyncio.sleep(5)
+                    print(match["map"])
                     rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')  
                 except Exception as err:
                     pass # Dont delete this
