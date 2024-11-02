@@ -18,8 +18,8 @@ class Matchmaking(commands.Cog):
         self.bot = bot
 
         self.matches = {
-                1281757327204159501: {
-                    "max": 4,
+                1245390449456447640: {
+                    "max": 10,
                     "region": "eu",
                     "map": "de_cache",
                     "users": {}, 
@@ -145,22 +145,22 @@ class Matchmaking(commands.Cog):
                     map_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match["timestamp"]}:R>", description="")
                     map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
                     
-                    map_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:cache:1289642476738707568> Cache", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:aztec:1302365929619062834> Aztec", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:de_cache:1245790208142737548> Cache", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:de_cobblestone:1245790227973279775> Cobblestone", value="Votes: 0", inline=True)
                     #map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300066138499190794> Dust 2", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300097369718919239> Dust 2", value="Votes: 0", inline=True)
                     #map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300066138499190794> Mirage", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300066138499190794> Nuke Old", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300097369718919239> Inferno", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300097369718919239> Mirage", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300097369718919239> Nuke Old", value="Votes: 0", inline=True)
                     #map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:de_overpass:1245790237532356689> Overpass", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:de_seaside:1281026580554059868> Seaside", value="Votes: 0", inline=True)
                     #map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300066138499190794> Train", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:halloween:1300097369718919239> Train", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:de_vertigo:1259159498858168430> Vertigo", value="Votes: 0", inline=True)
 
                     map_view = self.matchmaking.MapView(self.matchmaking, timeout=20)
                     asyncio.create_task(map_view.start_timer())
@@ -208,21 +208,21 @@ class Matchmaking(commands.Cog):
         @discord.ui.select(
             placeholder="Choose a map...",
             options=[
-                discord.SelectOption(label="Aztec", value="de_aztec", emoji=discord.PartialEmoji(name="aztec", id=1291798839430217728)),
+                discord.SelectOption(label="Aztec", value="de_aztec", emoji=discord.PartialEmoji(name="aztec", id=1302365929619062834)),
                 discord.SelectOption(label="Cache", value="de_cache", emoji=discord.PartialEmoji(name="de_cache", id=1245790208142737548)),
                 discord.SelectOption(label="Cobblestone", value="de_cbble", emoji=discord.PartialEmoji(name="de_cobblestone", id=1245790227973279775)),
                 #discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
-                discord.SelectOption(label="Dust 2", value="de_dust2_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                discord.SelectOption(label="Dust 2", value="de_dust2_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
                 #discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
-                discord.SelectOption(label="Inferno", value="de_inferno_dawn", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
-                discord.SelectOption(label="Mirage", value="de_mirage_rainy", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                discord.SelectOption(label="Inferno", value="de_inferno_dawn", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
+                discord.SelectOption(label="Mirage", value="de_mirage_rainy", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
                 discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
-                discord.SelectOption(label="Nuke Old", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                discord.SelectOption(label="Nuke Old", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
                 #discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
                 discord.SelectOption(label="Overpass", value="de_overpass", emoji=discord.PartialEmoji(name="de_overpass", id=1245790237532356689)),
                 discord.SelectOption(label="Seaside", value="de_seaside", emoji=discord.PartialEmoji(name="de_seaside", id=1281026580554059868)),
                 #discord.SelectOption(label="Train", value="de_train", emoji=discord.PartialEmoji(name="de_train", id=1245790222730526823)),
-                discord.SelectOption(label="Train", value="de_train_night", emoji=discord.PartialEmoji(name="halloween", id=1300066138499190794)),
+                discord.SelectOption(label="Train", value="de_train_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
                 discord.SelectOption(label="Vertigo", value="de_vertigo", emoji=discord.PartialEmoji(name="de_vertigo", id=1259159498858168430))
             ]
         )
@@ -256,22 +256,22 @@ class Matchmaking(commands.Cog):
                     if vote in vote_counts:
                         vote_counts[vote] += 1 
                 
-                maps_embed.add_field(name="<:aztec:1291798839430217728> Aztec", value=f'Votes: {vote_counts["de_aztec"]}', inline=True)
-                maps_embed.add_field(name="<:cache:1289642476738707568> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
-                maps_embed.add_field(name="<:cbble:1289645106206609469> Cobblestone", value=f'Votes: {vote_counts["de_cbble"]}', inline=True)
+                maps_embed.add_field(name="<:aztec:1302365929619062834> Aztec", value=f'Votes: {vote_counts["de_aztec"]}', inline=True)
+                maps_embed.add_field(name="<:de_cache:1245790208142737548> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
+                maps_embed.add_field(name="<:de_cobblestone:1245790227973279775> Cobblestone", value=f'Votes: {vote_counts["de_cbble"]}', inline=True)
                 #maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Dust 2", value=f'Votes: {vote_counts["de_dust2_night"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300097369718919239> Dust 2", value=f'Votes: {vote_counts["de_dust2_night"]}', inline=True)
                 #maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Inferno", value=f'Votes: {vote_counts["de_inferno_dawn"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Mirage", value=f'Votes: {vote_counts["de_mirage_rainy"]}', inline=True)
-                maps_embed.add_field(name="<:nuke:1289645109058474004> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Nuke Old", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300097369718919239> Inferno", value=f'Votes: {vote_counts["de_inferno_dawn"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300097369718919239> Mirage", value=f'Votes: {vote_counts["de_mirage_rainy"]}', inline=True)
+                maps_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300097369718919239> Nuke Old", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
                 #maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
-                maps_embed.add_field(name="<:overpass:1289645113051713649> Overpass", value=f'Votes: {vote_counts["de_overpass"]}', inline=True)
-                maps_embed.add_field(name="<:seaside:1289645101550665822> Seaside", value=f'Votes: {vote_counts["de_seaside"]}', inline=True)
+                maps_embed.add_field(name="<:de_overpass:1245790237532356689> Overpass", value=f'Votes: {vote_counts["de_overpass"]}', inline=True)
+                maps_embed.add_field(name="<:de_seaside:1281026580554059868> Seaside", value=f'Votes: {vote_counts["de_seaside"]}', inline=True)
                 #maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300066138499190794> Train", value=f'Votes: {vote_counts["de_train_night"]}', inline=True)
-                maps_embed.add_field(name="<:vertigo:1289645096328757369> Vertigo", value=f'Votes: {vote_counts["de_vertigo"]}', inline=True)
+                maps_embed.add_field(name="<:halloween:1300097369718919239> Train", value=f'Votes: {vote_counts["de_train_night"]}', inline=True)
+                maps_embed.add_field(name="<:de_vertigo:1259159498858168430> Vertigo", value=f'Votes: {vote_counts["de_vertigo"]}', inline=True)
 
                 message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
                 await message.edit(embed=maps_embed)
@@ -401,7 +401,7 @@ class Matchmaking(commands.Cog):
                     pass # Dont delete this
             
             if server_port == 0:
-                embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.", color=0xDA373C)
+                embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.\nDeathmatch server: `eu.csrestored.xyz:7777`", color=0xDA373C)
             
                 channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
                 message = await channel.fetch_message(match["message"]) 
@@ -481,12 +481,16 @@ class Matchmaking(commands.Cog):
             await asyncio.sleep(60.0)
 
         embed_ready = discord.Embed(title=f'**The server is ready! team_{match["users"][team_ct[0]]["name"]} VS team_{match["users"][team_t[0]]["name"]}**', description="The server is Ready! GLHF!", color = 0x4E5058)
-        
-        embed_ready.add_field(name="**IP**", value=f'``{ip}``', inline=True)
+
+        embed_ready.add_field(name="**IP**", value=f'``{match["region"]}.csrestored.xyz:{str(server_port)}``', inline=True)
 
         embed_ready.add_field(name="**Map**", value=f'``{match["map"]}``', inline=True)
-        embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
-        
+
+        if match["region"] == "eu":
+            embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
+        else:
+            embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, Arizona", inline=True)
+ 
         ct_users = ""
         t_users = ""
         

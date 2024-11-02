@@ -35,11 +35,11 @@ class Rank(commands.Cog):
                         elo = int(row[0])
                         
                         ranks = [
-                            (3000, 9, "<:lvl10:1255948786623057961>"), (2400, 8, "<:lvl9:1255948818239848499>"), 
-                            (2100, 7, "<:lvl8:1255948834614411324>"), (1800, 6, "<:lvl7:1255948849525293118>"), 
-                            (1500, 5, "<:lvl6:1255948866407239752>"), (1200, 4, "<:lvl5:1255948882882596946>"), 
-                            (900, 3, "<:lvl4:1255948899408019509>"), (600, 2, "<:lvl3:1255948919561650306>"),  
-                            (300, 1, "<:lvl2:1255948935365791754>"), (-696969, 0, "<:lvl1:1255948950494773372>"), 
+                            (3000, 9, "<:lvl1:1255948950494773372>"), (2400, 8, "<:lvl2:1255948935365791754>"), 
+                            (2100, 7, "<:lvl3:1255948919561650306>"), (1800, 6, "<:lvl4:1255948899408019509>"), 
+                            (1500, 5, "<:lvl5:1255948882882596946>"), (1200, 4, "<:lvl6:1255948866407239752>"), 
+                            (900, 3, "<:lvl7:1255948849525293118>"), (600, 2, "<:lvl8:1255948834614411324>"),  
+                            (300, 1, "<:lvl9:1255948818239848499>"), (-696969, 0, "<:lvl10:1255948786623057961>"), 
                         ]
                         
                         user_rank = next(rank for min_elo, rank, _ in ranks if elo >= min_elo)
@@ -57,11 +57,11 @@ class Rank(commands.Cog):
                         award_row = cursor.fetchone()
                         if award_row:
                             if int(award_row[0]) == 1:
-                                rank_embed.description += "\n<:cache:1289642476738707568>"
+                                rank_embed.description += "\n<:FirstDayMedal:1255950280374091898>"
                                 if int(award_row[1]) == 1:
-                                    rank_embed.description += " <:halloween:1300066138499190794>"
+                                    rank_embed.description += " <:halloween:1300097369718919239>"
                             elif int(award_row[1]) == 1:
-                                rank_embed.description += "\n<:halloween:1300066138499190794>" 
+                                rank_embed.description += "\n<:halloween:1300097369718919239>" 
 
                         await ctx.send(embed=rank_embed, view=rank_view)
                     else:
