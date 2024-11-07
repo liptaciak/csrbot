@@ -8,13 +8,18 @@ from pymysql.err import MySQLError
 from steamwebapi.api import ISteamUser
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from dotenv import load_dotenv
 load_dotenv()
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+@tasks.loop(minutes=5)
+async def ping_database():
+    bot.database.ping(reconnect=True)
+    print("Database pinged.")
 
 @bot.event
 async def on_ready():
@@ -36,8 +41,9 @@ async def on_ready():
             database = os.getenv("DB_NAME"),
             user = os.getenv("DB_USER")
         )
-
+        
         print("Connected to MySQL database.\n")
+        ping_database.start()
     except MySQLError as err:
         logging.error(f"Error while connecting to database: {err}")
 

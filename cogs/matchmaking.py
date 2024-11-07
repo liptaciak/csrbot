@@ -152,7 +152,7 @@ class Matchmaking(commands.Cog):
                     map_embed.add_field(name="<:halloween:1300097369718919239> Dust 2", value="Votes: 0", inline=True)
                     #map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:halloween:1300097369718919239> Inferno", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300097369718919239> Mirage", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:de_mirage:1245790217739436032> Mirage", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:halloween:1300097369718919239> Nuke Old", value="Votes: 0", inline=True)
                     #map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
@@ -215,7 +215,7 @@ class Matchmaking(commands.Cog):
                 discord.SelectOption(label="Dust 2", value="de_dust2_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
                 #discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
                 discord.SelectOption(label="Inferno", value="de_inferno_dawn", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
-                discord.SelectOption(label="Mirage", value="de_mirage_rainy", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
+                discord.SelectOption(label="Mirage", value="de_mirage", emoji=discord.PartialEmoji(name="de_mirage", id=1245790217739436032)),
                 discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
                 discord.SelectOption(label="Nuke Old", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
                 #discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
@@ -244,7 +244,7 @@ class Matchmaking(commands.Cog):
                 vote_counts = {
                     "de_aztec": 0, "de_cache": 0, 
                     "de_cbble": 0, "de_dust2_night": 0, 
-                    "de_inferno_dawn": 0, "de_mirage_rainy": 0, 
+                    "de_inferno_dawn": 0, "de_mirage": 0, 
                     "de_nuke": 0, "de_nuke_night": 0,
                     "de_overpass": 0, "de_seaside": 0, 
                     "de_train_night": 0, "de_vertigo": 0
@@ -263,7 +263,7 @@ class Matchmaking(commands.Cog):
                 maps_embed.add_field(name="<:halloween:1300097369718919239> Dust 2", value=f'Votes: {vote_counts["de_dust2_night"]}', inline=True)
                 #maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
                 maps_embed.add_field(name="<:halloween:1300097369718919239> Inferno", value=f'Votes: {vote_counts["de_inferno_dawn"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300097369718919239> Mirage", value=f'Votes: {vote_counts["de_mirage_rainy"]}', inline=True)
+                maps_embed.add_field(name="<:de_mirage:1245790217739436032> Mirage", value=f'Votes: {vote_counts["de_mirage"]}', inline=True)
                 maps_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
                 maps_embed.add_field(name="<:halloween:1300097369718919239> Nuke Old", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
                 #maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
@@ -407,7 +407,7 @@ class Matchmaking(commands.Cog):
                 message = await channel.fetch_message(match["message"]) 
             
                 await message.delete()
-                error_msg = await channel.send(content="<@&1300797763860303892>", embed=embed_error, view=None) 
+                error_msg = await channel.send(content="<@&1295834071477391401>", embed=embed_error, view=None) 
 
                 for id, user in list(match["users"].items()):
                     user = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).query_members(user_ids=[id])
@@ -860,26 +860,38 @@ class Matchmaking(commands.Cog):
 
     @commands.hybrid_command(name="reset", description="Reset matchmaking state.")
     @commands.has_permissions(administrator=True)
-    async def reset(self, ctx, id):
+    async def reset(self, ctx, id = None):
         if ctx.guild and ctx.guild.id == int(os.getenv("GUILD_ID")) and ctx.author.guild_permissions.administrator:
-            if id and int(id) in self.matches:
-                self.matches[int(id)] = {
-                    "max": self.matches[int(id)]["max"],
-                    "region": self.matches[int(id)]["region"],
-                    "map": "de_cache",
-                    "users": {},
-                    "groups": {},
-                    "state": "pre-search",
-                    "message": None,
-                    "id": None,
-                    "timestamp": 0,
-                }
-                
-                success_embed = discord.Embed(title="Success", description="Successfully reseted queue state.", color=0x248046)
-                await ctx.send(embed=success_embed)
-            else:
-                error_embed = discord.Embed(title="Error", description="Could not find queue. Is channel id correct?", color=0xDA373C)
-                await ctx.send(embed=error_embed)
+            if id:
+                if int(id) in self.matches:
+                    self.matches[int(id)] = {
+                        "max": self.matches[int(id)]["max"],
+                        "region": self.matches[int(id)]["region"],
+                        "map": "de_cache",
+                        "users": {},
+                        "groups": {},
+                        "state": "pre-search",
+                        "message": None,
+                        "id": None,
+                        "timestamp": 0,
+                    }
+                    
+                    success_embed = discord.Embed(title="Success", description="Successfully reseted queue state.", color=0x248046)
+                    await ctx.send(embed=success_embed)
+                else:
+                    error_embed = discord.Embed(title="Error", description="Could not find queue. Is channel id correct?", color=0xDA373C)
+                    await ctx.send(embed=error_embed)
+            else: 
+                try:
+                    self.bot.database.ping(reconnect=True)
+
+                    success_embed = discord.Embed(title="Success", description="Successfully reconnected to database.", color=0x248046)
+                    await ctx.send(embed=success_embed)
+                except Exception as err:
+                    error_embed = discord.Embed(title="Error", description="Could not reconnect to database.", color=0xDA373C)
+                    await ctx.send(embed=error_embed)
+
+                    logging.error(f"Cannot reconnect to database: {err}")
 
 async def setup(bot):
     await bot.add_cog(Matchmaking(bot))
