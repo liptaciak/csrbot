@@ -18,10 +18,11 @@ class Matchmaking(commands.Cog):
         self.bot = bot
 
         self.matches = {
-                1245390449456447640: {
+                1281757327204159501: {
                     "max": 10,
                     "region": "eu",
                     "map": "de_cache",
+                    "mode": "classic",
                     "users": {}, 
                     "groups": {},
                     "state": "pre-search", 
@@ -29,6 +30,18 @@ class Matchmaking(commands.Cog):
                     "id": None,
                     "timestamp": 0,
                 },
+                1281757327204159501: {
+                    "max": 10,
+                    "region": "eu",
+                    "map": "de_cache",
+                    "mode": "classic",
+                    "users": {}, 
+                    "groups": {},
+                    "state": "pre-search", 
+                    "message": None,
+                    "id": None,
+                    "timestamp": 0,
+                }
         }
 
         self.awaiting_accept = {}
@@ -148,18 +161,14 @@ class Matchmaking(commands.Cog):
                     map_embed.add_field(name="<:aztec:1302365929619062834> Aztec", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_cache:1245790208142737548> Cache", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_cobblestone:1245790227973279775> Cobblestone", value="Votes: 0", inline=True)
-                    #map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300097369718919239> Dust 2", value="Votes: 0", inline=True)
-                    #map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300097369718919239> Inferno", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_mirage:1245790217739436032> Mirage", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300097369718919239> Nuke Old", value="Votes: 0", inline=True)
-                    #map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_overpass:1245790237532356689> Overpass", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_seaside:1281026580554059868> Seaside", value="Votes: 0", inline=True)
-                    #map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:halloween:1300097369718919239> Train", value="Votes: 0", inline=True)
+                    map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
                     map_embed.add_field(name="<:de_vertigo:1259159498858168430> Vertigo", value="Votes: 0", inline=True)
 
                     map_view = self.matchmaking.MapView(self.matchmaking, timeout=20)
@@ -211,18 +220,14 @@ class Matchmaking(commands.Cog):
                 discord.SelectOption(label="Aztec", value="de_aztec", emoji=discord.PartialEmoji(name="aztec", id=1302365929619062834)),
                 discord.SelectOption(label="Cache", value="de_cache", emoji=discord.PartialEmoji(name="de_cache", id=1245790208142737548)),
                 discord.SelectOption(label="Cobblestone", value="de_cbble", emoji=discord.PartialEmoji(name="de_cobblestone", id=1245790227973279775)),
-                #discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
-                discord.SelectOption(label="Dust 2", value="de_dust2_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
-                #discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
-                discord.SelectOption(label="Inferno", value="de_inferno_dawn", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
+                discord.SelectOption(label="Dust 2", value="de_dust2", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
+                discord.SelectOption(label="Inferno", value="de_inferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
                 discord.SelectOption(label="Mirage", value="de_mirage", emoji=discord.PartialEmoji(name="de_mirage", id=1245790217739436032)),
                 discord.SelectOption(label="Nuke", value="de_nuke", emoji=discord.PartialEmoji(name="de_nuke", id=1245789136523362456)),
-                discord.SelectOption(label="Nuke Old", value="de_nuke_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
-                #discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
+                discord.SelectOption(label="Nuke Old", value="de_nuke_old", emoji=discord.PartialEmoji(name="de_nuke_old", id=1246167328446746664)),
                 discord.SelectOption(label="Overpass", value="de_overpass", emoji=discord.PartialEmoji(name="de_overpass", id=1245790237532356689)),
                 discord.SelectOption(label="Seaside", value="de_seaside", emoji=discord.PartialEmoji(name="de_seaside", id=1281026580554059868)),
-                #discord.SelectOption(label="Train", value="de_train", emoji=discord.PartialEmoji(name="de_train", id=1245790222730526823)),
-                discord.SelectOption(label="Train", value="de_train_night", emoji=discord.PartialEmoji(name="halloween", id=1300097369718919239)),
+                discord.SelectOption(label="Train", value="de_train", emoji=discord.PartialEmoji(name="de_train", id=1245790222730526823)),
                 discord.SelectOption(label="Vertigo", value="de_vertigo", emoji=discord.PartialEmoji(name="de_vertigo", id=1259159498858168430))
             ]
         )
@@ -243,11 +248,11 @@ class Matchmaking(commands.Cog):
                 
                 vote_counts = {
                     "de_aztec": 0, "de_cache": 0, 
-                    "de_cbble": 0, "de_dust2_night": 0, 
-                    "de_inferno_dawn": 0, "de_mirage": 0, 
-                    "de_nuke": 0, "de_nuke_night": 0,
+                    "de_cbble": 0, "de_dust2": 0, 
+                    "de_inferno": 0, "de_mirage": 0, 
+                    "de_nuke": 0, "de_nuke_old": 0,
                     "de_overpass": 0, "de_seaside": 0, 
-                    "de_train_night": 0, "de_vertigo": 0
+                    "de_train": 0, "de_vertigo": 0
                 }
 
                 for user_vote in match["users"].values():
@@ -259,18 +264,14 @@ class Matchmaking(commands.Cog):
                 maps_embed.add_field(name="<:aztec:1302365929619062834> Aztec", value=f'Votes: {vote_counts["de_aztec"]}', inline=True)
                 maps_embed.add_field(name="<:de_cache:1245790208142737548> Cache", value=f'Votes: {vote_counts["de_cache"]}', inline=True)
                 maps_embed.add_field(name="<:de_cobblestone:1245790227973279775> Cobblestone", value=f'Votes: {vote_counts["de_cbble"]}', inline=True)
-                #maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300097369718919239> Dust 2", value=f'Votes: {vote_counts["de_dust2_night"]}', inline=True)
-                #maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300097369718919239> Inferno", value=f'Votes: {vote_counts["de_inferno_dawn"]}', inline=True)
+                maps_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value=f'Votes: {vote_counts["de_dust2"]}', inline=True)
+                maps_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value=f'Votes: {vote_counts["de_inferno"]}', inline=True)
                 maps_embed.add_field(name="<:de_mirage:1245790217739436032> Mirage", value=f'Votes: {vote_counts["de_mirage"]}', inline=True)
                 maps_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value=f'Votes: {vote_counts["de_nuke"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300097369718919239> Nuke Old", value=f'Votes: {vote_counts["de_nuke_night"]}', inline=True)
-                #maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
+                maps_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value=f'Votes: {vote_counts["de_nuke_old"]}', inline=True)
                 maps_embed.add_field(name="<:de_overpass:1245790237532356689> Overpass", value=f'Votes: {vote_counts["de_overpass"]}', inline=True)
                 maps_embed.add_field(name="<:de_seaside:1281026580554059868> Seaside", value=f'Votes: {vote_counts["de_seaside"]}', inline=True)
-                #maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
-                maps_embed.add_field(name="<:halloween:1300097369718919239> Train", value=f'Votes: {vote_counts["de_train_night"]}', inline=True)
+                maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
                 maps_embed.add_field(name="<:de_vertigo:1259159498858168430> Vertigo", value=f'Votes: {vote_counts["de_vertigo"]}', inline=True)
 
                 message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
@@ -423,6 +424,7 @@ class Matchmaking(commands.Cog):
                     "max": match["max"],
                     "region": match["region"],
                     "map": "de_cache",
+                    "mode": match["mode"],
                     "users": {}, 
                     "groups": {},
                     "state": "pre-search", 
@@ -451,7 +453,7 @@ class Matchmaking(commands.Cog):
             if match["region"] == "eu":
                 embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
             else:
-                embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, Arizona", inline=True)
+                embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, San Francisco", inline=True)
             
             ct_users = ""
             t_users = ""
@@ -489,7 +491,7 @@ class Matchmaking(commands.Cog):
         if match["region"] == "eu":
             embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
         else:
-            embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, Arizona", inline=True)
+            embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, San Francisco", inline=True)
  
         ct_users = ""
         t_users = ""
@@ -541,6 +543,7 @@ class Matchmaking(commands.Cog):
             "max": match["max"],
             "region": match["region"],
             "map": "de_cache",
+            "mode": match["mode"],
             "users": {}, 
             "groups": {},
             "state": "pre-search", 
@@ -556,56 +559,56 @@ class Matchmaking(commands.Cog):
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
         if after.channel and after.channel.id in self.matches or before.channel and before.channel.id in self.matches:
-            if after.channel and after.channel is not before.channel:
-                if after.channel:
-                    for user in after.channel.members:
-                        if user.id != member.id and user.id not in self.matches[after.channel.id]["users"]:
-                            if len(self.matches[after.channel.id]["users"]) < self.matches[after.channel.id]["max"] - 1:
-                                self.matches[after.channel.id]["users"][user.id] = { "id": user.id, "name": user.name, "team": None, "steamid": None, "accepted": False, "vote": None }
-                            else:
-                                await user.move_to(channel=None)
+            if after.channel:
+                for user in after.channel.members:
+                    if user.id != member.id and user.id not in self.matches[after.channel.id]["users"]:
+                        if len(self.matches[after.channel.id]["users"]) < self.matches[after.channel.id]["max"] - 1:
+                            self.matches[after.channel.id]["users"][user.id] = { "id": user.id, "name": user.name, "team": None, "steamid": None, "accepted": False, "vote": None }
+                        else:
+                            await user.move_to(channel=None)
 
-                if before.channel == None or after.channel and after.channel.id != before.channel.id:
-                    queue_embed = discord.Embed(color=0x5865F2, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
+            if before.channel == None or after.channel and after.channel.id != before.channel.id:
+                queue_embed = discord.Embed(color=0x5865F2, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
 
-                    if self.matches[after.channel.id]["state"] == "pre-search":
-                        queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(content="", embed=queue_embed)
+                if self.matches[after.channel.id]["state"] == "pre-search":
+                    queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(content="", embed=queue_embed)
 
-                        self.matches[after.channel.id]["message"] = queue_msg.id
-                        self.matches[after.channel.id]["state"] = "search"
+                    self.matches[after.channel.id]["message"] = queue_msg.id
+                    self.matches[after.channel.id]["state"] = "search"
 
-                    if after.channel and member.id not in self.matches[after.channel.id]["users"]: 
-                        if len(self.matches[after.channel.id]["users"]) < self.matches[after.channel.id]["max"] and self.matches[after.channel.id]["state"] == "search": 
-                            self.matches[after.channel.id]["users"][member.id] = { "id": member.id, "name": member.name, "team": None, "steamid": None, "accepted": False, "vote": None }
+                if after.channel and member.id not in self.matches[after.channel.id]["users"]: 
+                    if len(self.matches[after.channel.id]["users"]) < self.matches[after.channel.id]["max"] and self.matches[after.channel.id]["state"] == "search": 
+                        self.matches[after.channel.id]["users"][member.id] = { "id": member.id, "name": member.name, "team": None, "steamid": None, "accepted": False, "vote": None }
 
-                            message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"])
-                            
-                            queue_embed.title = f'In queue: {len(self.matches[after.channel.id]["users"])}/{self.matches[after.channel.id]["max"]}'
-                            queue_embed.set_footer(text="The search channel will be locked when it reaches max size.")
-                            
-                            index = 1
+                        message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"])
+                        
+                        queue_embed.title = f'In queue: {len(self.matches[after.channel.id]["users"])}/{self.matches[after.channel.id]["max"]}'
+                        queue_embed.set_footer(text="Remember to update the game to 2017 in order to play!")
+                        
+                        index = 1
+                        for user in self.matches[after.channel.id]["users"]:
+                            queue_embed.description += f"{index}. {self.matches[after.channel.id]["users"][user]["name"]}\n"
+
+                            self.matches[after.channel.id]["id"] = after.channel.id
+                            index += 1
+                        
+                        role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID"))) 
+                        await message.edit(content="", embed=queue_embed)
+
+                        if len(self.matches[after.channel.id]["users"]) == self.matches[after.channel.id]["max"]:
+                            self.matches[after.channel.id]["timestamp"] = int(time() + 30)
+
+                            accept_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Expires <t:{self.matches[after.channel.id]["timestamp"]}:R>", description=f"Users accepted: 0/{self.matches[after.channel.id]["max"]}\n")
+                            accept_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
+
+                            accept_view = self.AcceptView(self, timeout=30)  
+                            asyncio.create_task(accept_view.start_timer())
+
+                            accept_content = ""
                             for user in self.matches[after.channel.id]["users"]:
-                                queue_embed.description += f"{index}. {self.matches[after.channel.id]["users"][user]["name"]}\n"
-
-                                self.matches[after.channel.id]["id"] = after.channel.id
-                                index += 1
+                                accept_content += f"<@{user}> "
                             
-                            role = member.guild.get_role(int(os.getenv("VERIFIED_ROLE_ID"))) 
-                            await message.edit(content="", embed=queue_embed)
-
-                            if len(self.matches[after.channel.id]["users"]) == self.matches[after.channel.id]["max"]:
-                                self.matches[after.channel.id]["timestamp"] = int(time() + 30)
-
-                                accept_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Expires <t:{self.matches[after.channel.id]["timestamp"]}:R>", description=f"Users accepted: 0/{self.matches[after.channel.id]["max"]}\n")
-                                accept_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
-
-                                accept_view = self.AcceptView(self, timeout=30)  
-                                asyncio.create_task(accept_view.start_timer())
-
-                                accept_content = ""
-                                for user in self.matches[after.channel.id]["users"]:
-                                    accept_content += f"<@{user}> "
-                                
+                            if self.matches[after.channel.id]["state"] == "search":
                                 await after.channel.set_permissions(role, connect=False)
 
                                 accept_message = await message.channel.send(content=accept_content, embed=accept_embed, view=accept_view)
@@ -613,12 +616,13 @@ class Matchmaking(commands.Cog):
 
                                 self.matches[after.channel.id]["state"] = "accept"
                                 self.matches[after.channel.id]["message"] = accept_message.id
-
-                            await after.channel.set_permissions(role, connect=False)
-                            asyncio.create_task(self.revert_permissions(after.channel, role))
-
+                        await after.channel.set_permissions(role, connect=False)
+                        asyncio.create_task(self.revert_permissions(after.channel, role))
             else:
                 if before.channel and before.channel.id in self.matches:
+                    if after.channel and after.channel.id == before.channel.id:
+                        return
+
                     if len(self.matches[before.channel.id]["users"]) > 0 and member.id in self.matches[before.channel.id]["users"] and self.matches[before.channel.id]["state"] == "search":
                         self.matches[before.channel.id]["users"].pop(member.id)
                         
@@ -635,7 +639,7 @@ class Matchmaking(commands.Cog):
                         
                         queue_embed = discord.Embed(color=0x5865F2, description="")
                         queue_embed.title = f'In queue: {len(self.matches[before.channel.id]["users"])}/{self.matches[before.channel.id]["max"]}'
-                        queue_embed.set_footer(text="The search channel will be locked when it reaches max size.")
+                        queue_embed.set_footer(text="Remember to update the game to 2017 in order to play!")
                         
                         index = 1
                         for user in self.matches[before.channel.id]["users"]:
@@ -643,16 +647,23 @@ class Matchmaking(commands.Cog):
                             index += 1
 
                         await message.edit(content="", embed=queue_embed)
-
     def get_max_party_size(self, matchid, max_players, current_players, parties):
         max_party_size = max_players // 2
         remaining_spots = max_players - len(current_players)
 
         if len(parties) == 0:
             return min(max_party_size, remaining_spots)
-        
-        largest_party_size = max(len(self.matches[matchid]["groups"][party]) for party in parties)
-        return min(max_party_size, remaining_spots, largest_party_size)
+
+        party_sizes = sorted((len(self.matches[matchid]["groups"][party]) for party in parties), reverse=True)
+
+        total_party_size = 0
+        for size in party_sizes:
+            if total_party_size + size <= min(max_party_size, remaining_spots):
+                total_party_size += size
+            else:
+                break
+
+        return total_party_size
 
     class GroupAcceptView(discord.ui.View):
         def __init__(self, matchmaking):

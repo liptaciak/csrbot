@@ -10,15 +10,45 @@ from steamwebapi.api import ISteamUser
 import discord
 from discord.ext import commands, tasks
 
+from opengsq.protocols import Source
+
 from dotenv import load_dotenv
 load_dotenv()
 
 intents = discord.Intents.all()
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+double_check = []
 @tasks.loop(minutes=5)
 async def ping_database():
     bot.database.ping(reconnect=True)
+
+    with bot.database.cursor() as cursor:
+        cursor.execute("""SELECT ip, active FROM status WHERE active = 1""")
+        server_list = cursor.fetchall()
+
+        for (ip, active) in server_list:
+            data = ip.split(":")
+            try:
+                source = Source(host=data[0], port=int(data[1]))
+                info = await source.get_info()
+                
+                if info.players == 0:
+                    if ip in double_check:
+                        double_check.remove(ip)
+
+                        query = "UPDATE status SET active = 0 WHERE ip = %s" 
+                        cursor.execute(query, (ip,))
+
+                        bot.database.commit()
+                    else:
+                        double_check.append(ip)
+            except Exception as err:
+                query = "UPDATE status SET active = 0 WHERE ip = %s"
+                cursor.execute(query, (ip,))
+
+                bot.database.commit()
+
     print("Database pinged.")
 
 @bot.event
