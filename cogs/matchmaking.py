@@ -677,7 +677,7 @@ class Matchmaking(commands.Cog):
 
     class GroupAcceptView(discord.ui.View):
         def __init__(self, matchmaking):
-            super().__init__(timeout=15)
+            super().__init__(timeout=30)
 
             self.matchmaking = matchmaking
             self.message = None
@@ -730,7 +730,7 @@ class Matchmaking(commands.Cog):
                 self.matchmaking.awaiting_accept.pop(request)
     
     async def delete_request(self, request_id):
-        await asyncio.sleep(15.0)
+        await asyncio.sleep(30.0)
 
         if request_id in self.awaiting_accept:
             self.awaiting_accept.pop(request_id)
@@ -803,8 +803,8 @@ class Matchmaking(commands.Cog):
 
                                     group_accept_view = self.GroupAcceptView(self)
                                     
-                                    invite_embed = discord.Embed(title="Party", description=f"<@{member.id}> you have been invited to <@{ctx.author.id}> party! Expires <t:{int(time() + 15)}:R>", color=0x248046)
-                                    invite_embed.set_footer(text="Click on button to accept, you have 15 seconds!")
+                                    invite_embed = discord.Embed(title="Party", description=f"<@{member.id}> you have been invited to <@{ctx.author.id}> party! Expires <t:{int(time() + 30)}:R>", color=0x248046)
+                                    invite_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
 
                                     await ctx.send(embed=invite_embed, view=group_accept_view)
                                 else:
