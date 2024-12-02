@@ -10,7 +10,7 @@ from time import time
 import discord
 from discord.ext import commands
 
-from valve.rcon import RCON, RCONError
+from valve.rcon import RCON, RCONError, RCONCommunicationError
 from opengsq.protocols import Source
 
 class Matchmaking(commands.Cog):
@@ -18,23 +18,12 @@ class Matchmaking(commands.Cog):
         self.bot = bot
 
         self.matches = {
-                1281757327204159501: {
+                1310216665673498635: {
                     "max": 10,
                     "region": "eu",
                     "map": "de_cache",
                     "mode": "classic",
-                    "users": {}, 
-                    "groups": {},
-                    "state": "pre-search", 
-                    "message": None,
-                    "id": None,
-                    "timestamp": 0,
-                },
-                1281757327204159501: {
-                    "max": 10,
-                    "region": "eu",
-                    "map": "de_cache",
-                    "mode": "classic",
+                    "textid": 1310216604251983974,
                     "users": {}, 
                     "groups": {},
                     "state": "pre-search", 
@@ -107,7 +96,7 @@ class Matchmaking(commands.Cog):
 
                     index = 1
                     for user in match["users"]:
-                        queue_embed.description += f"{index}. {match["users"][user]["name"]}\n"
+                        queue_embed.description += f"{index}. {match['users'][user]['name']}\n"
                         index += 1
                     
                     channel = self.matchmaking.bot.get_channel(match["id"])
@@ -115,7 +104,7 @@ class Matchmaking(commands.Cog):
 
                     asyncio.create_task(self.matchmaking.revert_permissions(channel, role))
                     
-                    channel = self.matchmaking.bot.get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
+                    channel = self.matchmaking.bot.get_channel(int(match["textid"]))
 
                     message = await channel.fetch_message(match["message"]) 
                     await message.delete()
@@ -136,7 +125,7 @@ class Matchmaking(commands.Cog):
                     match = match_data
 
             if match and interaction.user.id in match["users"]:
-                message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+                message = await interaction.user.guild.get_channel(int(match["textid"])).fetch_message(match["message"]) 
 
                 if match["users"][interaction.user.id]["accepted"] == False:
                     match["users"][interaction.user.id]["accepted"] = True
@@ -147,7 +136,7 @@ class Matchmaking(commands.Cog):
                 
                 accepted = sum(1 for user in match["users"].values() if user["accepted"])
 
-                accepted_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Ending: <t:{match["timestamp"]}:R>", description=f"Users accepted: {accepted}/{match["max"]}\n")
+                accepted_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Ending: <t:{match['timestamp']}:R>", description=f"Users accepted: {accepted}/{match['max']}\n")
                 accepted_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
 
                 await message.edit(embed=accepted_embed)
@@ -155,7 +144,7 @@ class Matchmaking(commands.Cog):
                 if accepted == match["max"]:
                     match["timestamp"] = int(time() + 20)
 
-                    map_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match["timestamp"]}:R>", description="")
+                    map_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match['timestamp']}:R>", description="")
                     map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
                     
                     map_embed.add_field(name="<:aztec:1302365929619062834> Aztec", value="Votes: 0", inline=True)
@@ -243,7 +232,7 @@ class Matchmaking(commands.Cog):
 
                 await interaction.response.defer()
                 
-                maps_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match["timestamp"]}:R>", description="") 
+                maps_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match['timestamp']}:R>", description="") 
                 maps_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
                 
                 vote_counts = {
@@ -274,7 +263,7 @@ class Matchmaking(commands.Cog):
                 maps_embed.add_field(name="<:trainn:1289645099030151218> Train", value=f'Votes: {vote_counts["de_train"]}', inline=True)
                 maps_embed.add_field(name="<:de_vertigo:1259159498858168430> Vertigo", value=f'Votes: {vote_counts["de_vertigo"]}', inline=True)
 
-                message = await interaction.user.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+                message = await interaction.user.guild.get_channel(int(match["textid"])).fetch_message(match["message"]) 
                 await message.edit(embed=maps_embed)
 
                 if sum(1 for user in match["users"].values() if user["vote"] is not None) == match["max"]:
@@ -291,7 +280,7 @@ class Matchmaking(commands.Cog):
         preparing_embed = discord.Embed(title="Preparing", description="Preparing server... :hourglass:", color=0x3375A8)
         preparing_embed.set_footer(text="This can take up to 1-2 minutes at most. Bot will ping your when server is ready.")
         
-        channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
+        channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(match["textid"]))
         message = await channel.fetch_message(match["message"]) 
 
         await message.edit(embed=preparing_embed, view=None)
@@ -378,6 +367,7 @@ class Matchmaking(commands.Cog):
 
                 active_servers = cursor.fetchall()
             
+            print(active_servers)
             server_port = 0
             server_ip = ""
             for (server,) in active_servers:
@@ -392,19 +382,20 @@ class Matchmaking(commands.Cog):
                 except Exception as err:
                     logging.error(f"Unexpected error on {server}: {err}")
                     continue
-            
+                
             with RCON((server_ip, int(server_port)), os.getenv("RCON_PASS")) as rcon:
                 try:
                     await asyncio.sleep(5)
                     print(match["map"])
                     rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')  
-                except Exception as err:
+                except (ConnectionRefusedError, ConnectionResetError, RCONError, RCONCommunicationError) as err:
                     pass # Dont delete this
+                
             
             if server_port == 0:
                 embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.\nDeathmatch server: `eu.csrestored.xyz:7777`", color=0xDA373C)
             
-                channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID")))
+                channel = self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(match["textid"]))
                 message = await channel.fetch_message(match["message"]) 
             
                 await message.delete()
@@ -421,15 +412,16 @@ class Matchmaking(commands.Cog):
                 await channel.set_permissions(role, connect=False) 
 
                 self.matches[match["id"]] = {
-                    "max": match["max"],
-                    "region": match["region"],
+                    "max": self.matches[match["id"]]["max"],
+                    "region": self.matches[match["id"]]["region"],
                     "map": "de_cache",
-                    "mode": match["mode"],
-                    "users": {}, 
+                    "users": {},
                     "groups": {},
-                    "state": "pre-search", 
+                    "state": "pre-search",
                     "message": None,
                     "id": None,
+                    "timestamp": 0,
+                    "textid": self.matches[match["id"]]["textid"],
                 }
             
                 return
@@ -477,7 +469,7 @@ class Matchmaking(commands.Cog):
             
             embed_ready.set_footer(text="This can take up to 1-2 minutes at most.")
 
-            message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"]) 
+            message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(match["textid"])).fetch_message(match["message"]) 
             await message.edit(embed=embed_ready, view=None)
  
             await asyncio.sleep(60.0)
@@ -523,7 +515,7 @@ class Matchmaking(commands.Cog):
         server_data = server_ip.split(":")
         connect_view = self.ConnectView(f"https://csrestored.xyz/connect.html?ip={server_ip}&port={server_port}")
 
-        message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(match["message"])  
+        message = await self.bot.get_guild(int(os.getenv("GUILD_ID"))).get_channel(int(match["textid"])).fetch_message(match["message"])  
         
         player_pings = ""
         for user in match["users"]:
@@ -539,16 +531,28 @@ class Matchmaking(commands.Cog):
 
         asyncio.create_task(self.revert_permissions(channel, role))
 
+        ## self.matches[match["id"]] = {
+        ##    "max": match["max"],
+        ##    "region": match["region"],
+        ##    "map": "de_cache",
+        ##    "mode": match["mode"],
+        ##    "users": {}, 
+        ##    "groups": {},
+        ##    "state": "pre-search", 
+        ##    "message": None,
+        ##    "id": None,
+        ##}
         self.matches[match["id"]] = {
-            "max": match["max"],
-            "region": match["region"],
+            "max": self.matches[match["id"]]["max"],
+            "region": self.matches[match["id"]]["region"],
             "map": "de_cache",
-            "mode": match["mode"],
-            "users": {}, 
+            "users": {},
             "groups": {},
-            "state": "pre-search", 
+            "state": "pre-search",
             "message": None,
             "id": None,
+            "timestamp": 0,
+            "textid": self.matches[match["id"]]["textid"],
         }
         
     async def revert_permissions(self, channel, role):
@@ -568,10 +572,10 @@ class Matchmaking(commands.Cog):
                             await user.move_to(channel=None)
 
             if before.channel == None or after.channel and after.channel.id != before.channel.id:
-                queue_embed = discord.Embed(color=0x5865F2, title=f"In queue: 0/{self.matches[after.channel.id]["max"]}", description="")
+                queue_embed = discord.Embed(color=0x5865F2, title=f"In queue: 0/{self.matches[after.channel.id]['max']}", description="")
 
                 if self.matches[after.channel.id]["state"] == "pre-search":
-                    queue_msg = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).send(content="", embed=queue_embed)
+                    queue_msg = await member.guild.get_channel(int(self.matches[after.channel.id]["textid"])).send(content="", embed=queue_embed)
 
                     self.matches[after.channel.id]["message"] = queue_msg.id
                     self.matches[after.channel.id]["state"] = "search"
@@ -580,14 +584,14 @@ class Matchmaking(commands.Cog):
                     if len(self.matches[after.channel.id]["users"]) < self.matches[after.channel.id]["max"] and self.matches[after.channel.id]["state"] == "search": 
                         self.matches[after.channel.id]["users"][member.id] = { "id": member.id, "name": member.name, "team": None, "steamid": None, "accepted": False, "vote": None }
 
-                        message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[after.channel.id]["message"])
+                        message = await member.guild.get_channel(int(self.matches[after.channel.id]["textid"])).fetch_message(self.matches[after.channel.id]["message"])
                         
                         queue_embed.title = f'In queue: {len(self.matches[after.channel.id]["users"])}/{self.matches[after.channel.id]["max"]}'
                         queue_embed.set_footer(text="Remember to update the game to 2017 in order to play!")
                         
                         index = 1
                         for user in self.matches[after.channel.id]["users"]:
-                            queue_embed.description += f"{index}. {self.matches[after.channel.id]["users"][user]["name"]}\n"
+                            queue_embed.description += f"{index}. {self.matches[after.channel.id]['users'][user]['name']}\n"
 
                             self.matches[after.channel.id]["id"] = after.channel.id
                             index += 1
@@ -598,7 +602,7 @@ class Matchmaking(commands.Cog):
                         if len(self.matches[after.channel.id]["users"]) == self.matches[after.channel.id]["max"]:
                             self.matches[after.channel.id]["timestamp"] = int(time() + 30)
 
-                            accept_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Expires <t:{self.matches[after.channel.id]["timestamp"]}:R>", description=f"Users accepted: 0/{self.matches[after.channel.id]["max"]}\n")
+                            accept_embed = discord.Embed(color=0x248046, title=f"The queue has filled up! Expires <t:{self.matches[after.channel.id]['timestamp']}:R>", description=f"Users accepted: 0/{self.matches[after.channel.id]['max']}\n")
                             accept_embed.set_footer(text="Click on button to accept, you have 30 seconds!")
 
                             accept_view = self.AcceptView(self, timeout=30)  
@@ -635,7 +639,7 @@ class Matchmaking(commands.Cog):
                         await before.channel.set_permissions(role, connect=False)
                         asyncio.create_task(self.revert_permissions(before.channel, role))
                        
-                        message = await member.guild.get_channel(int(os.getenv("QUEUE_CHANNEL_ID"))).fetch_message(self.matches[before.channel.id]["message"])
+                        message = await member.guild.get_channel(int(self.matches[before.channel.id]["textid"])).fetch_message(self.matches[before.channel.id]["message"])
                         
                         queue_embed = discord.Embed(color=0x5865F2, description="")
                         queue_embed.title = f'In queue: {len(self.matches[before.channel.id]["users"])}/{self.matches[before.channel.id]["max"]}'
@@ -643,7 +647,7 @@ class Matchmaking(commands.Cog):
                         
                         index = 1
                         for user in self.matches[before.channel.id]["users"]:
-                            queue_embed.description += f"{index}. {self.matches[before.channel.id]["users"][user]["name"]}\n"
+                            queue_embed.description += f"{index}. {self.matches[before.channel.id]['users'][user]['name']}\n"
                             index += 1
 
                         await message.edit(content="", embed=queue_embed)
@@ -737,7 +741,7 @@ class Matchmaking(commands.Cog):
                             index = 1
                             for group_member in group_members:
                                 if group_member in self.matches[ctx.author.voice.channel.id]["users"]:
-                                    content += f"{index}. {self.matches[ctx.author.voice.channel.id]["users"][group_member]["name"]}\n"
+                                    content += f"{index}. {self.matches[ctx.author.voice.channel.id]['users'][group_member]['name']}\n"
                                     index += 1
                         
                     if content != "":
@@ -885,6 +889,7 @@ class Matchmaking(commands.Cog):
                         "message": None,
                         "id": None,
                         "timestamp": 0,
+                        "textid": self.matches[int(id)]["textid"],
                     }
                     
                     success_embed = discord.Embed(title="Success", description="Successfully reseted queue state.", color=0x248046)
