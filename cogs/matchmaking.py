@@ -18,12 +18,12 @@ class Matchmaking(commands.Cog):
         self.bot = bot
 
         self.matches = {
-                1310216665673498635: {
+                1281757327204159501: {
                     "max": 10,
                     "region": "eu",
                     "map": "de_cache",
                     "mode": "classic",
-                    "textid": 1310216604251983974,
+                    "textid": 1281758617393041419,
                     "users": {}, 
                     "groups": {},
                     "state": "pre-search", 
@@ -651,23 +651,29 @@ class Matchmaking(commands.Cog):
                             index += 1
 
                         await message.edit(content="", embed=queue_embed)
-    def get_max_party_size(self, matchid, max_players, current_players, parties):
-        max_party_size = max_players // 2
-        remaining_spots = max_players - len(current_players)
 
+    def get_max_party_size(self, matchid, max_queue, parties):
+        max_team_size = max_queue // 2
+        
         if len(parties) == 0:
-            return min(max_party_size, remaining_spots)
+            return max_team_size
+        
+        parties = [len(self.matches[matchid]["groups"][party]) for party in parties]
+        parties.sort(reverse=True)        
 
-        party_sizes = sorted((len(self.matches[matchid]["groups"][party]) for party in parties), reverse=True)
-
-        total_party_size = 0
-        for size in party_sizes:
-            if total_party_size + size <= min(max_party_size, remaining_spots):
-                total_party_size += size
+        team1, team2 = 0, 0
+        for party in parties:
+            if team1 + party <= max_team_size:
+                team1 += party
+            elif team2 + party <= max_team_size:
+                team2 += party
             else:
                 break
+        
+        if (max_queue - (team1 + team2)) >= (max_team_size - min(parties)):
+          return max_team_size - min(team1, team2)
 
-        return total_party_size
+        return max_queue - (team1 + team2)
 
     class GroupAcceptView(discord.ui.View):
         def __init__(self, matchmaking):
@@ -695,7 +701,7 @@ class Matchmaking(commands.Cog):
                                 await interaction.response.send_message(embed=error_embed)
                                 return
 
-                            if len(match["groups"][leader]) - 1 < self.matchmaking.get_max_party_size(leader_user[0].voice.channel.id, match["max"], match["users"], match["groups"]) + 1:
+                            if len(match["groups"][leader]) < self.matchmaking.get_max_party_size(match["id"], match["max"], match["groups"]):
                                 if interaction.user.id not in self.matchmaking.matches[leader_user[0].voice.channel.id]["users"]:
                                     error_embed = discord.Embed(title="Party", description=f"Could not join, you are not in the queue.", color=0xDA373C)
                                     error_embed.set_footer(text="Rejoin the voice channel and try again.")
@@ -784,8 +790,7 @@ class Matchmaking(commands.Cog):
                                 if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["groups"]:
                                     self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id] = [ctx.author.id]
                                 
-                                if len(self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id]) - 1 < self.get_max_party_size(ctx.author.voice.channel.id, self.matches[ctx.author.voice.channel.id]["max"], self.matches[ctx.author.voice.channel.id]["users"], self.matches[ctx.author.voice.channel.id]["groups"]) + 1:
-                               
+                                if len(self.matches[ctx.author.voice.channel.id]["groups"][ctx.author.id]) < self.get_max_party_size(ctx.author.voice.channel.id, self.matches[ctx.author.voice.channel.id]["max"], self.matches[ctx.author.voice.channel.id]["groups"]):
                                     if ctx.author.id not in self.matches[ctx.author.voice.channel.id]["users"]:
                                         error_embed = discord.Embed(title="Party", description="You are not in the queue.", color=0xDA373C)
                                         error_embed.set_footer(text="Rejoin the voice channel and try again.")
