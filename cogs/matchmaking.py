@@ -19,10 +19,10 @@ class Matchmaking(commands.Cog):
 
         self.matches = {
                 1281757327204159501: {
-                    "max": 10,
+                    "max": 2,
                     "region": "eu",
-                    "map": "de_cache",
-                    "mode": "classic",
+                    "map": "de_shortdust",
+                    "mode": "wingman",
                     "textid": 1281758617393041419,
                     "users": {}, 
                     "groups": {},
@@ -147,24 +147,116 @@ class Matchmaking(commands.Cog):
                     map_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match['timestamp']}:R>", description="")
                     map_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
                     
-                    map_embed.add_field(name="<:aztec:1302365929619062834> Aztec", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:de_cache:1245790208142737548> Cache", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:de_cobblestone:1245790227973279775> Cobblestone", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:de_mirage:1245790217739436032> Mirage", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:de_overpass:1245790237532356689> Overpass", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:de_seaside:1281026580554059868> Seaside", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
-                    map_embed.add_field(name="<:de_vertigo:1259159498858168430> Vertigo", value="Votes: 0", inline=True)
+                    if match["mode"] == "wingman":
+                        map_embed.add_field(name="<:dust2:1289645615881654292> Short Dust", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:inferno:1289645114729173103> Short Inferno", value="Votes: 0", inline=True)
 
-                    map_view = self.matchmaking.MapView(self.matchmaking, timeout=20)
+                        map_view = self.matchmaking.WingmanMapView(self.matchmaking, timeout=20)
+                    else:
+                        map_embed.add_field(name="<:aztec:1302365929619062834> Aztec", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:de_cache:1245790208142737548> Cache", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:de_cobblestone:1245790227973279775> Cobblestone", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:dust2:1289645615881654292> Dust 2", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:inferno:1289645114729173103> Inferno", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:de_mirage:1245790217739436032> Mirage", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:de_nuke:1245789136523362456> Nuke", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:nuke_old:1289645103291302002> Nuke Old", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:de_overpass:1245790237532356689> Overpass", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:de_seaside:1281026580554059868> Seaside", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:trainn:1289645099030151218> Train", value="Votes: 0", inline=True)
+                        map_embed.add_field(name="<:de_vertigo:1259159498858168430> Vertigo", value="Votes: 0", inline=True)
+
+                        map_view = self.matchmaking.MapView(self.matchmaking, timeout=20)
+
                     asyncio.create_task(map_view.start_timer())
 
                     await message.edit(content=None, embed=map_embed, view=map_view)
                     match["state"] = "map"
+    
+    class WingmanMapView(discord.ui.View):
+        def __init__(self, matchmaking, timeout=20):
+            super().__init__(timeout=None)
+            self.timeout_duration = timeout
+            self.is_timed_out = False
+
+            self.matchmaking = matchmaking
+        
+        async def start_timer(self):
+            await asyncio.sleep(self.timeout_duration)
+            self.is_timed_out = True
+            await self.on_timeout_custom()
+        
+        async def on_timeout_custom(self):
+            match = None
+
+            for match_id, match_data in self.matchmaking.matches.items():
+                if match_data["state"] == "map":
+                    match = match_data
+
+            if match:
+                votes = [user["vote"] for user in match["users"].values()] 
+                vote_count = Counter(votes)
+                max_votes = max(vote_count.values())
+
+                maps = [map for map, count in vote_count.items() if count == max_votes]
+
+                if maps[0] != None:
+                    match["map"] = maps[0]
+                
+                await self.matchmaking.prepare_server(match)
+
+        async def interaction_check(self, interaction: discord.Interaction) -> bool:
+            if self.is_timed_out:
+                return False
+            return True
+
+        @discord.ui.select(
+            placeholder="Choose a map...",
+            options=[
+                discord.SelectOption(label="Short Dust", value="de_shortdust", emoji=discord.PartialEmoji(name="de_dust2", id=1245790212886495343)),
+                discord.SelectOption(label="Short Inferno", value="de_shortinferno", emoji=discord.PartialEmoji(name="de_inferno", id=1245790232796987444)),
+            ]
+        )
+        async def map_callback(self, interaction: discord.Interaction, select: discord.ui.Select):
+            selected_map = select.values[0]
+
+            for match_id, match_data in self.matchmaking.matches.items():
+                if match_data["message"] == interaction.message.id and match_data["state"] == "map":
+                    match = match_data
+
+            if match and interaction.user.id in match["users"]:
+                match["users"][interaction.user.id]["vote"] = selected_map
+
+                await interaction.response.defer()
+                
+                maps_embed = discord.Embed(color=0x4E5058, title=f"Choose a map. Expires <t:{match['timestamp']}:R>", description="") 
+                maps_embed.set_footer(text="You can change your vote. Click on icon to select. You have 20 seconds! ")
+                
+                vote_counts = {
+                    "de_shortdust": 0, "de_shortinferno": 0, 
+                }
+
+                for user_vote in match["users"].values():
+                    vote = user_vote.get("vote")
+
+                    if vote in vote_counts:
+                        vote_counts[vote] += 1 
+                
+                maps_embed.add_field(name="<:dust2:1289645615881654292> Short Dust", value=f'Votes: {vote_counts["de_shortdust"]}', inline=True)
+                maps_embed.add_field(name="<:inferno:1289645114729173103> Short Inferno", value=f'Votes: {vote_counts["de_shortinferno"]}', inline=True)
+
+                message = await interaction.user.guild.get_channel(int(match["textid"])).fetch_message(match["message"]) 
+                await message.edit(embed=maps_embed)
+
+                if sum(1 for user in match["users"].values() if user["vote"] is not None) == match["max"]:
+                    votes = [user["vote"] for user in match["users"].values()]
+                    vote_count = Counter(votes)
+                    max_votes = max(vote_count.values())
+
+                    maps = [map for map, count in vote_count.items() if count == max_votes]
+                    match["map"] = maps[0]
+                    
+                    await self.matchmaking.prepare_server(match)
 
     class MapView(discord.ui.View):
         def __init__(self, matchmaking, timeout=20):
@@ -387,10 +479,9 @@ class Matchmaking(commands.Cog):
                 try:
                     await asyncio.sleep(5)
                     print(match["map"])
-                    rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}"')  
+                    rcon(f'sm_setupmatch {match["map"]} "team_{match["users"][team_ct[0]]["name"]}" "team_{match["users"][team_t[0]]["name"]}" {match["max"] + 1}')  
                 except (ConnectionRefusedError, ConnectionResetError, RCONError, RCONCommunicationError) as err:
-                    pass # Dont delete this
-                
+                    pass # Dont delete this 
             
             if server_port == 0:
                 embed_error = discord.Embed(title="**Error**", description="Couldnt find any available servers. Please wait or contact an administrator.\nDeathmatch server: `eu.csrestored.xyz:7777`", color=0xDA373C)
@@ -445,7 +536,7 @@ class Matchmaking(commands.Cog):
             if match["region"] == "eu":
                 embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
             else:
-                embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, San Francisco", inline=True)
+                embed_ready.add_field(name="**Server Location**", value=":flag_sg: Singapore", inline=True)
             
             ct_users = ""
             t_users = ""
@@ -483,7 +574,7 @@ class Matchmaking(commands.Cog):
         if match["region"] == "eu":
             embed_ready.add_field(name="**Server Location**", value=":flag_de: Germany, Falkenstein", inline=True)
         else:
-            embed_ready.add_field(name="**Server Location**", value=":flag_us: United States, San Francisco", inline=True)
+            embed_ready.add_field(name="**Server Location**", value=":flag_sg: Singapore", inline=True)
  
         ct_users = ""
         t_users = ""
