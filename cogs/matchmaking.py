@@ -661,7 +661,21 @@ class Matchmaking(commands.Cog):
                             self.matches[after.channel.id]["users"][user.id] = { "id": user.id, "name": user.name, "team": None, "steamid": None, "accepted": False, "vote": None }
                         else:
                             await user.move_to(channel=None)
+                
+                for user in self.matches[after.channel.id]["users"]:
+                    in_channel = false
+                    for member in after.channel.members:
+                        if member.id == user_id:
+                            in_channel = true
+                            break
 
+                    if in_channel != true:
+                        self.matches[after.channel.id]["users"].pop(user)
+                        
+                        for group in self.matches[after.channel.id]["groups"]:
+                            if user in self.matches[after.channel.id]["groups"][group]:
+                                self.matches[after.channel.id]["groups"][group].remove(user)
+ 
             if before.channel == None or after.channel and after.channel.id != before.channel.id:
                 queue_embed = discord.Embed(color=0x5865F2, title=f"In queue: 0/{self.matches[after.channel.id]['max']}", description="")
 
