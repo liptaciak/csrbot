@@ -1,4 +1,5 @@
 # CS:R Bot
+Legacy version of Counter-Strike: Restored bot.
 
 ## Install
 
